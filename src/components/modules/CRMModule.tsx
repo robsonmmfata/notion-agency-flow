@@ -1,10 +1,14 @@
 import { Card, CardContent, CardHeader, CardTitle } from "../ui/card";
 import { Button } from "../ui/button";
 import { Plus, Search, Filter, MoreVertical, DollarSign, Calendar, User, Upload, FileText, Edit, Trash2 } from "lucide-react";
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import ClienteModal from "../ClienteModal";
 import EditClienteModal from "../EditClienteModal";
 import ImportExportModal from "../ImportExportModal";
+import { supabase } from "../../integrations/supabase/client";
+
+
+
 
 const CRMModule = () => {
   const [filterStatus, setFilterStatus] = useState("todos");
@@ -15,67 +19,37 @@ const CRMModule = () => {
   const [importModal, setImportModal] = useState(false);
   const [actionMenu, setActionMenu] = useState<number | null>(null);
 
-  const [clientes, setClientes] = useState([
-    {
-      id: 1,
-      nome: "ABC Marketing",
-      tipoServico: "Gestão de Redes",
-      dataInicio: "2025-01-15",
-      dataFim: "2025-12-15",
-      valor: 4500,
-      formaPagamento: "Mensal",
-      status: "ativo",
-      proximaCobranca: "2025-07-15"
-    },
-    {
-      id: 2,
-      nome: "Tech Solutions",
-      tipoServico: "Anúncios Pagos",
-      dataInicio: "2025-02-01",
-      dataFim: "2025-08-01",
-      valor: 6800,
-      formaPagamento: "Mensal",
-      status: "ativo",
-      proximaCobranca: "2025-07-01"
-    },
-    {
-      id: 3,
-      nome: "Inovação Digital",
-      tipoServico: "Criação de Conteúdo",
-      dataInicio: "2024-11-10",
-      dataFim: "2025-05-10",
-      valor: 2800,
-      formaPagamento: "Mensal",
-      status: "expirando",
-      proximaCobranca: "2025-07-10"
-    },
-    {
-      id: 4,
-      nome: "StartUp Growth",
-      tipoServico: "Consultoria",
-      dataInicio: "2025-03-20",
-      dataFim: "2025-09-20",
-      valor: 3200,
-      formaPagamento: "Mensal",
-      status: "ativo",
-      proximaCobranca: "2025-07-20"
-    },
-    {
-      id: 5,
-      nome: "E-commerce Plus",
-      tipoServico: "Gestão de Redes",
-      dataInicio: "2024-12-05",
-      dataFim: "2025-06-05",
-      valor: 3800,
-      formaPagamento: "Mensal",
-      status: "cancelado",
-      proximaCobranca: "-"
-    }
-  ]);
+  const [clientes, setClientes] = useState([]);
 
-  const handleSaveCliente = (novoCliente: any) => {
-    const id = Math.max(...clientes.map(c => c.id)) + 1;
-    setClientes([...clientes, { ...novoCliente, id }]);
+  useEffect(() => {
+    fetchClientes();
+  }, []);
+
+  const fetchClientes = async () => {
+    const { data, error } = await supabase
+      .from("clientes")
+      .select("*")
+      .order("id", { ascending: true });
+    if (error) {
+      console.error("Erro ao buscar clientes:", error);
+    } else {
+      setClientes(data || []);
+    }
+  };
+
+  const handleSaveCliente = async (novoCliente: any) => {
+    const { data, error } = await supabase
+      .from("clientes")
+      .insert([novoCliente])
+      .select()
+      .single();
+    if (error) {
+      console.error("Erro ao salvar cliente:", error);
+      alert("Erro ao salvar cliente");
+    } else {
+      setClientes((prev) => [...prev, data]);
+      setClienteModal(false);
+    }
   };
 
   const handleEditCliente = (cliente: any) => {
@@ -84,43 +58,87 @@ const CRMModule = () => {
     setActionMenu(null);
   };
 
-  const handleUpdateCliente = (clienteAtualizado: any) => {
-    setClientes(clientes.map(c => 
-      c.id === clienteAtualizado.id ? clienteAtualizado : c
-    ));
+  const handleUpdateCliente = async (clienteAtualizado: any) => {
+    const { data, error } = await supabase
+      .from("clientes")
+      .update(clienteAtualizado)
+      .eq("id", clienteAtualizado.id)
+      .select()
+      .single();
+    if (error) {
+      console.error("Erro ao atualizar cliente:", error);
+      alert("Erro ao atualizar cliente");
+    } else {
+      setClientes((prev) =>
+        prev.map((c) => (c.id === data.id ? data : c))
+      );
+      setEditClienteModal(false);
+    }
   };
 
-  const handleDeleteCliente = (id: number) => {
-    setClientes(clientes.filter(c => c.id !== id));
+  const handleDeleteCliente = async (id: number) => {
+    const { error } = await supabase
+      .from("clientes")
+      .delete()
+      .eq("id", id);
+    if (error) {
+      console.error("Erro ao deletar cliente:", error);
+      alert("Erro ao deletar cliente");
+    } else {
+      setClientes((prev) => prev.filter((c) => c.id !== id));
+      setActionMenu(null);
+    }
   };
 
-  const handleImportContacts = (file: File, type: string) => {
+  const handleImportContacts = async (file: File, type: string) => {
     console.log(`Importando contatos do arquivo: ${file.name} (${type})`);
-    
+
     if (type === "csv") {
       const reader = new FileReader();
-      reader.onload = (e) => {
+      reader.onload = async (e) => {
         const text = e.target?.result as string;
-        const lines = text.split('\n');
-        const headers = lines[0].split(',');
-        
-        const novosClientes = lines.slice(1).filter(line => line.trim()).map((line, index) => {
-          const values = line.split(',');
-          return {
-            id: Math.max(...clientes.map(c => c.id)) + index + 1,
-            nome: values[0]?.replace(/"/g, '') || `Cliente ${index + 1}`,
-            tipoServico: values[1]?.replace(/"/g, '') || "Gestão de Redes",
-            dataInicio: values[2]?.replace(/"/g, '') || new Date().toISOString().split('T')[0],
-            dataFim: values[3]?.replace(/"/g, '') || new Date(new Date().setFullYear(new Date().getFullYear() + 1)).toISOString().split('T')[0],
-            valor: parseFloat(values[4]?.replace(/"/g, '')) || 0,
-            formaPagamento: values[5]?.replace(/"/g, '') || "Mensal",
-            status: values[6]?.replace(/"/g, '') || "ativo",
-            proximaCobranca: values[7]?.replace(/"/g, '') || new Date().toISOString().split('T')[0]
-          };
-        });
-        
-        setClientes(prev => [...prev, ...novosClientes]);
-        alert(`${novosClientes.length} clientes importados com sucesso!`);
+        const lines = text.split("\n");
+        const headers = lines[0].split(",");
+
+        const novosClientes = lines
+          .slice(1)
+          .filter((line) => line.trim())
+          .map((line, index) => {
+            const values = line.split(",");
+            return {
+              nome: values[0]?.replace(/"/g, "") || `Cliente ${index + 1}`,
+              tipo_servico: values[1]?.replace(/"/g, "") || "Gestão de Redes",
+              data_inicio:
+                values[2]?.replace(/"/g, "") ||
+                new Date().toISOString().split("T")[0],
+              data_fim:
+                values[3]?.replace(/"/g, "") ||
+                new Date(
+                  new Date().setFullYear(new Date().getFullYear() + 1)
+                )
+                  .toISOString()
+                  .split("T")[0],
+              valor: parseFloat(values[4]?.replace(/"/g, "")) || 0,
+              forma_pagamento: values[5]?.replace(/"/g, "") || "Mensal",
+              status: values[6]?.replace(/"/g, "") || "ativo",
+              proxima_cobranca:
+                values[7]?.replace(/"/g, "") ||
+                new Date().toISOString().split("T")[0],
+            };
+          });
+
+        const { data, error } = await supabase
+          .from("clientes")
+          .insert(novosClientes);
+
+        if (error) {
+          console.error("Erro ao importar clientes:", error);
+          alert("Erro ao importar clientes");
+        } else {
+          setClientes((prev) => [...prev, ...data]);
+          alert(`${data.length} clientes importados com sucesso!`);
+          setImportModal(false);
+        }
       };
       reader.readAsText(file);
     } else {
@@ -130,23 +148,28 @@ const CRMModule = () => {
 
   const getStatusColor = (status: string) => {
     switch (status) {
-      case "ativo": return "bg-green-100 text-green-800";
-      case "expirando": return "bg-orange-100 text-orange-800";
-      case "cancelado": return "bg-red-100 text-red-800";
-      case "pendente": return "bg-yellow-100 text-yellow-800";
-      default: return "bg-gray-100 text-gray-800";
+      case "ativo":
+        return "bg-green-100 text-green-800";
+      case "expirando":
+        return "bg-orange-100 text-orange-800";
+      case "cancelado":
+        return "bg-red-100 text-red-800";
+      case "pendente":
+        return "bg-yellow-100 text-yellow-800";
+      default:
+        return "bg-gray-100 text-gray-800";
     }
   };
 
-  const clientesFiltrados = clientes.filter(cliente => {
+  const clientesFiltrados = clientes.filter((cliente) => {
     const statusMatch = filterStatus === "todos" || cliente.status === filterStatus;
-    const serviceMatch = filterService === "todos" || cliente.tipoServico === filterService;
+    const serviceMatch = filterService === "todos" || cliente.tipo_servico === filterService;
     return statusMatch && serviceMatch;
   });
 
-  const totalContratos = clientesFiltrados.filter(c => c.status === "ativo").length;
+  const totalContratos = clientesFiltrados.filter((c) => c.status === "ativo").length;
   const valorTotal = clientesFiltrados
-    .filter(c => c.status === "ativo")
+    .filter((c) => c.status === "ativo")
     .reduce((sum, c) => sum + c.valor, 0);
 
   return (
@@ -157,14 +180,11 @@ const CRMModule = () => {
           <p className="text-gray-500">Gestão completa de clientes e contratos</p>
         </div>
         <div className="flex space-x-2">
-          <Button 
-            variant="outline"
-            onClick={() => setImportModal(true)}
-          >
+          <Button variant="outline" onClick={() => setImportModal(true)}>
             <Upload className="w-4 h-4 mr-2" />
             Importar Contatos
           </Button>
-          <Button 
+          <Button
             className="bg-blue-600 hover:bg-blue-700"
             onClick={() => setClienteModal(true)}
           >
@@ -187,7 +207,7 @@ const CRMModule = () => {
             </div>
           </CardContent>
         </Card>
-        
+
         <Card>
           <CardContent className="p-6">
             <div className="flex items-center justify-between">
@@ -199,7 +219,7 @@ const CRMModule = () => {
             </div>
           </CardContent>
         </Card>
-        
+
         <Card>
           <CardContent className="p-6">
             <div className="flex items-center justify-between">
@@ -225,7 +245,7 @@ const CRMModule = () => {
                 className="w-full pl-10 pr-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
               />
             </div>
-            
+
             <select
               value={filterStatus}
               onChange={(e) => setFilterStatus(e.target.value)}
@@ -237,7 +257,7 @@ const CRMModule = () => {
               <option value="cancelado">Cancelado</option>
               <option value="pendente">Pendente</option>
             </select>
-            
+
             <select
               value={filterService}
               onChange={(e) => setFilterService(e.target.value)}
@@ -363,3 +383,4 @@ const CRMModule = () => {
 };
 
 export default CRMModule;
+
