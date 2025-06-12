@@ -1,13 +1,14 @@
-
 import { Card, CardContent, CardHeader, CardTitle } from "../ui/card";
 import { Button } from "../ui/button";
 import { Plus, User, Briefcase, CheckCircle, Clock, AlertTriangle } from "lucide-react";
 import { useState } from "react";
+import MembroModal from "../MembroModal";
 
 const EquipeModule = () => {
   const [activeTab, setActiveTab] = useState("membros");
+  const [membroModal, setMembroModal] = useState(false);
 
-  const membros = [
+  const [membros, setMembros] = useState([
     {
       id: 1,
       nome: "Ana Silva",
@@ -48,7 +49,12 @@ const EquipeModule = () => {
       tarefasAtivas: 6,
       avatar: "DO"
     }
-  ];
+  ]);
+
+  const handleSaveMembro = (novoMembro: any) => {
+    const id = Math.max(...membros.map(m => m.id)) + 1;
+    setMembros([...membros, { ...novoMembro, id }]);
+  };
 
   const vagasAbertas = [
     {
@@ -157,7 +163,16 @@ const EquipeModule = () => {
           <h1 className="text-2xl font-bold text-gray-900">Equipe & Tarefas</h1>
           <p className="text-gray-500">Gestão de colaboradores e atividades</p>
         </div>
-        <Button className="bg-blue-600 hover:bg-blue-700">
+        <Button 
+          className="bg-blue-600 hover:bg-blue-700"
+          onClick={() => {
+            if (activeTab === "tarefas") {
+              alert("Modal de nova tarefa seria aberto aqui");
+            } else {
+              setMembroModal(true);
+            }
+          }}
+        >
           <Plus className="w-4 h-4 mr-2" />
           {activeTab === "tarefas" ? "Nova Tarefa" : "Novo Membro"}
         </Button>
@@ -369,8 +384,19 @@ const EquipeModule = () => {
                           {vaga.status}
                         </span>
                         <div className="mt-2 space-x-2">
-                          <Button size="sm" variant="outline">Editar</Button>
-                          <Button size="sm">Ver Candidatos</Button>
+                          <Button 
+                            size="sm" 
+                            variant="outline"
+                            onClick={() => alert("Modal de edição de vaga seria aberto")}
+                          >
+                            Editar
+                          </Button>
+                          <Button 
+                            size="sm"
+                            onClick={() => alert("Lista de candidatos seria exibida")}
+                          >
+                            Ver Candidatos
+                          </Button>
                         </div>
                       </div>
                     </div>
@@ -381,6 +407,13 @@ const EquipeModule = () => {
           )}
         </CardContent>
       </Card>
+
+      {/* Modal */}
+      <MembroModal
+        isOpen={membroModal}
+        onClose={() => setMembroModal(false)}
+        onSave={handleSaveMembro}
+      />
     </div>
   );
 };

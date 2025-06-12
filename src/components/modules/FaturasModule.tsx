@@ -7,7 +7,7 @@ import { useState } from "react";
 const FaturasModule = () => {
   const [filterStatus, setFilterStatus] = useState("todas");
 
-  const faturas = [
+  const [faturas, setFaturas] = useState([
     {
       id: 1,
       cliente: "ABC Marketing",
@@ -58,7 +58,24 @@ const FaturasModule = () => {
       anexo: "fatura_inov_jun25.pdf",
       dataPagamento: null
     }
-  ];
+  ]);
+
+  const handleEnviarFatura = (id: number) => {
+    setFaturas(faturas.map(fatura => 
+      fatura.id === id ? { ...fatura, status: "enviada" } : fatura
+    ));
+    alert("Fatura enviada com sucesso!");
+  };
+
+  const handleCobrarFatura = (id: number) => {
+    const fatura = faturas.find(f => f.id === id);
+    alert(`Cobrança enviada para ${fatura?.cliente}. WhatsApp e e-mail de cobrança disparados.`);
+  };
+
+  const handleDownloadFatura = (anexo: string) => {
+    // Simula download
+    alert(`Download iniciado: ${anexo}`);
+  };
 
   const getStatusColor = (status: string) => {
     switch (status) {
@@ -94,7 +111,10 @@ const FaturasModule = () => {
           <h1 className="text-2xl font-bold text-gray-900">Faturas & Cobranças</h1>
           <p className="text-gray-500">Gestão completa de faturamento e cobrança</p>
         </div>
-        <Button className="bg-blue-600 hover:bg-blue-700">
+        <Button 
+          className="bg-blue-600 hover:bg-blue-700"
+          onClick={() => alert("Modal de nova fatura seria aberto aqui")}
+        >
           <Plus className="w-4 h-4 mr-2" />
           Nova Fatura
         </Button>
@@ -230,7 +250,10 @@ const FaturasModule = () => {
                       </div>
                     </td>
                     <td className="py-3 px-4">
-                      <button className="flex items-center space-x-1 text-blue-600 hover:text-blue-800 text-sm">
+                      <button 
+                        onClick={() => handleDownloadFatura(fatura.anexo)}
+                        className="flex items-center space-x-1 text-blue-600 hover:text-blue-800 text-sm"
+                      >
                         <Download className="w-4 h-4" />
                         <span>{fatura.anexo}</span>
                       </button>
@@ -238,13 +261,21 @@ const FaturasModule = () => {
                     <td className="py-3 px-4">
                       <div className="flex space-x-2">
                         {fatura.status === "pendente" && (
-                          <Button size="sm" variant="outline">
+                          <Button 
+                            size="sm" 
+                            variant="outline"
+                            onClick={() => handleEnviarFatura(fatura.id)}
+                          >
                             <Send className="w-4 h-4 mr-1" />
                             Enviar
                           </Button>
                         )}
                         {fatura.status === "vencida" && (
-                          <Button size="sm" variant="destructive">
+                          <Button 
+                            size="sm" 
+                            variant="destructive"
+                            onClick={() => handleCobrarFatura(fatura.id)}
+                          >
                             <AlertCircle className="w-4 h-4 mr-1" />
                             Cobrar
                           </Button>

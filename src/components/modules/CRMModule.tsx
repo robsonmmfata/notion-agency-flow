@@ -1,14 +1,18 @@
-
 import { Card, CardContent, CardHeader, CardTitle } from "../ui/card";
 import { Button } from "../ui/button";
-import { Plus, Search, Filter, MoreVertical, DollarSign, Calendar, User } from "lucide-react";
+import { Plus, Search, Filter, MoreVertical, DollarSign, Calendar, User, Upload, FileText, Edit, Trash2 } from "lucide-react";
 import { useState } from "react";
+import ClienteModal from "../ClienteModal";
+import ImportExportModal from "../ImportExportModal";
 
 const CRMModule = () => {
   const [filterStatus, setFilterStatus] = useState("todos");
   const [filterService, setFilterService] = useState("todos");
+  const [clienteModal, setClienteModal] = useState(false);
+  const [importModal, setImportModal] = useState(false);
+  const [actionMenu, setActionMenu] = useState<number | null>(null);
 
-  const clientes = [
+  const [clientes, setClientes] = useState([
     {
       id: 1,
       nome: "ABC Marketing",
@@ -64,7 +68,30 @@ const CRMModule = () => {
       status: "cancelado",
       proximaCobranca: "-"
     }
-  ];
+  ]);
+
+  const handleSaveCliente = (novoCliente: any) => {
+    const id = Math.max(...clientes.map(c => c.id)) + 1;
+    setClientes([...clientes, { ...novoCliente, id }]);
+  };
+
+  const handleImportContacts = (file: File, type: string) => {
+    console.log(`Importando contatos do arquivo: ${file.name} (${type})`);
+    // Aqui você implementaria a lógica de importação de contatos
+    alert(`${file.name} importado com sucesso! Novos contatos adicionados.`);
+  };
+
+  const handleDeleteCliente = (id: number) => {
+    if (confirm("Tem certeza que deseja excluir este cliente?")) {
+      setClientes(clientes.filter(c => c.id !== id));
+      setActionMenu(null);
+    }
+  };
+
+  const handleEditCliente = (id: number) => {
+    alert(`Editando cliente ${id} - Modal de edição seria aberto aqui`);
+    setActionMenu(null);
+  };
 
   const getStatusColor = (status: string) => {
     switch (status) {
@@ -94,10 +121,22 @@ const CRMModule = () => {
           <h1 className="text-2xl font-bold text-gray-900">CRM Principal</h1>
           <p className="text-gray-500">Gestão completa de clientes e contratos</p>
         </div>
-        <Button className="bg-blue-600 hover:bg-blue-700">
-          <Plus className="w-4 h-4 mr-2" />
-          Novo Cliente
-        </Button>
+        <div className="flex space-x-2">
+          <Button 
+            variant="outline"
+            onClick={() => setImportModal(true)}
+          >
+            <Upload className="w-4 h-4 mr-2" />
+            Importar Contatos
+          </Button>
+          <Button 
+            className="bg-blue-600 hover:bg-blue-700"
+            onClick={() => setClienteModal(true)}
+          >
+            <Plus className="w-4 h-4 mr-2" />
+            Novo Cliente
+          </Button>
+        </div>
       </div>
 
       {/* Cards de Resumo */}
@@ -228,10 +267,32 @@ const CRMModule = () => {
                         "-"
                       }
                     </td>
-                    <td className="py-3 px-4">
-                      <button className="p-1 rounded hover:bg-gray-100">
+                    <td className="py-3 px-4 relative">
+                      <button 
+                        className="p-1 rounded hover:bg-gray-100"
+                        onClick={() => setActionMenu(actionMenu === cliente.id ? null : cliente.id)}
+                      >
                         <MoreVertical className="w-4 h-4 text-gray-400" />
                       </button>
+                      
+                      {actionMenu === cliente.id && (
+                        <div className="absolute right-0 top-8 bg-white border border-gray-200 rounded-lg shadow-lg z-10 w-40">
+                          <button
+                            onClick={() => handleEditCliente(cliente.id)}
+                            className="w-full px-4 py-2 text-left hover:bg-gray-50 flex items-center space-x-2"
+                          >
+                            <Edit className="w-4 h-4" />
+                            <span>Editar</span>
+                          </button>
+                          <button
+                            onClick={() => handleDeleteCliente(cliente.id)}
+                            className="w-full px-4 py-2 text-left hover:bg-gray-50 flex items-center space-x-2 text-red-600"
+                          >
+                            <Trash2 className="w-4 h-4" />
+                            <span>Excluir</span>
+                          </button>
+                        </div>
+                      )}
                     </td>
                   </tr>
                 ))}
@@ -240,6 +301,20 @@ const CRMModule = () => {
           </div>
         </CardContent>
       </Card>
+
+      {/* Modais */}
+      <ClienteModal
+        isOpen={clienteModal}
+        onClose={() => setClienteModal(false)}
+        onSave={handleSaveCliente}
+      />
+      
+      <ImportExportModal
+        isOpen={importModal}
+        onClose={() => setImportModal(false)}
+        type="import"
+        onImport={handleImportContacts}
+      />
     </div>
   );
 };

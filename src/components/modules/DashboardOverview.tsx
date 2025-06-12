@@ -2,47 +2,89 @@
 import { Card, CardContent, CardHeader, CardTitle } from "../ui/card";
 import { DollarSign, TrendingUp, Users, FileText, AlertCircle, CheckCircle } from "lucide-react";
 import { BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer, PieChart, Pie, Cell } from "recharts";
+import { useState } from "react";
 
 const DashboardOverview = () => {
+  const [selectedMonth, setSelectedMonth] = useState("2025-06");
+
+  // Dados mockados por mês
+  const dadosPorMes = {
+    "2025-06": {
+      receita: 45280,
+      despesas: 28150,
+      lucro: 17130,
+      clientes: 23,
+      cobrancas: 7,
+      contratos: 31,
+      crescimentoReceita: "+12.5%",
+      crescimentoDespesas: "+3.2%",
+      crescimentoLucro: "+24.8%"
+    },
+    "2025-05": {
+      receita: 41000,
+      despesas: 26500,
+      lucro: 14500,
+      clientes: 21,
+      cobrancas: 5,
+      contratos: 29,
+      crescimentoReceita: "+8.3%",
+      crescimentoDespesas: "+2.1%",
+      crescimentoLucro: "+18.2%"
+    },
+    "2025-04": {
+      receita: 44000,
+      despesas: 28000,
+      lucro: 16000,
+      clientes: 22,
+      cobrancas: 6,
+      contratos: 30,
+      crescimentoReceita: "+15.2%",
+      crescimentoDespesas: "+5.8%",
+      crescimentoLucro: "+28.1%"
+    }
+  };
+
+  const dadosAtual = dadosPorMes[selectedMonth as keyof typeof dadosPorMes] || dadosPorMes["2025-06"];
+
   const stats = [
     {
       title: "Receita do Mês",
-      value: "R$ 45.280",
-      change: "+12.5%",
+      value: `R$ ${dadosAtual.receita.toLocaleString()}`,
+      change: dadosAtual.crescimentoReceita,
       icon: DollarSign,
       color: "text-green-600"
     },
     {
       title: "Despesas Totais",
-      value: "R$ 28.150",
-      change: "+3.2%",
+      value: `R$ ${dadosAtual.despesas.toLocaleString()}`,
+      change: dadosAtual.crescimentoDespesas,
       icon: TrendingUp,
       color: "text-red-600"
     },
     {
       title: "Lucro Líquido",
-      value: "R$ 17.130",
-      change: "+24.8%",
+      value: `R$ ${dadosAtual.lucro.toLocaleString()}`,
+      change: dadosAtual.crescimentoLucro,
       icon: TrendingUp,
       color: "text-blue-600"
     },
     {
       title: "Clientes Ativos",
-      value: "23",
+      value: dadosAtual.clientes.toString(),
       change: "+2",
       icon: Users,
       color: "text-purple-600"
     },
     {
       title: "Cobranças Pendentes",
-      value: "7",
+      value: dadosAtual.cobrancas.toString(),
       change: "-1",
       icon: AlertCircle,
       color: "text-orange-600"
     },
     {
       title: "Contratos Vigentes",
-      value: "31",
+      value: dadosAtual.contratos.toString(),
       change: "+4",
       icon: FileText,
       color: "text-indigo-600"
@@ -55,7 +97,7 @@ const DashboardOverview = () => {
     { mes: "Mar", receita: 39000, despesas: 26000 },
     { mes: "Abr", receita: 44000, despesas: 28000 },
     { mes: "Mai", receita: 41000, despesas: 26500 },
-    { mes: "Jun", receita: 45280, despesas: 28150 }
+    { mes: "Jun", receita: dadosAtual.receita, despesas: dadosAtual.despesas }
   ];
 
   const serviceData = [
@@ -65,18 +107,31 @@ const DashboardOverview = () => {
     { name: "Consultoria", value: 10, color: "#8B5CF6" }
   ];
 
+  const getMesNome = (mesValue: string) => {
+    const meses = {
+      "2025-06": "Junho 2025",
+      "2025-05": "Maio 2025",
+      "2025-04": "Abril 2025"
+    };
+    return meses[mesValue as keyof typeof meses] || "Junho 2025";
+  };
+
   return (
     <div className="space-y-6">
       <div className="flex items-center justify-between">
         <div>
           <h1 className="text-2xl font-bold text-gray-900">Dashboard Geral</h1>
-          <p className="text-gray-500">Visão completa da sua agência - Junho 2025</p>
+          <p className="text-gray-500">Visão completa da sua agência - {getMesNome(selectedMonth)}</p>
         </div>
         <div className="flex space-x-2">
-          <select className="px-3 py-2 border border-gray-300 rounded-lg text-sm">
-            <option>Junho 2025</option>
-            <option>Maio 2025</option>
-            <option>Abril 2025</option>
+          <select 
+            value={selectedMonth}
+            onChange={(e) => setSelectedMonth(e.target.value)}
+            className="px-3 py-2 border border-gray-300 rounded-lg text-sm focus:ring-2 focus:ring-blue-500"
+          >
+            <option value="2025-06">Junho 2025</option>
+            <option value="2025-05">Maio 2025</option>
+            <option value="2025-04">Abril 2025</option>
           </select>
         </div>
       </div>
