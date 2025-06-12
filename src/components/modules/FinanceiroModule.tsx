@@ -2,39 +2,85 @@
 import { Card, CardContent, CardHeader, CardTitle } from "../ui/card";
 import { Button } from "../ui/button";
 import { Plus, TrendingUp, TrendingDown, DollarSign } from "lucide-react";
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer } from "recharts";
 import FinanceiroModal from "../FinanceiroModal";
+import { supabase } from "../../integrations/supabase/client";
 
 const FinanceiroModule = () => {
   const [activeTab, setActiveTab] = useState("entradas");
   const [entradaModal, setEntradaModal] = useState(false);
   const [saidaModal, setSaidaModal] = useState(false);
 
-  const [entradas, setEntradas] = useState([
-    { id: 1, cliente: "ABC Marketing", valor: 4500, data: "2025-06-01", comprovante: "boleto_001.pdf", forma: "PIX", observacoes: "Pagamento em dia" },
-    { id: 2, cliente: "Tech Solutions", valor: 6800, data: "2025-06-03", comprovante: "transferencia_002.pdf", forma: "Transferência", observacoes: "Desconto aplicado" },
-    { id: 3, cliente: "StartUp Growth", valor: 3200, data: "2025-06-05", comprovante: "boleto_003.pdf", forma: "Boleto", observacoes: "" },
-    { id: 4, cliente: "Inovação Digital", valor: 2800, data: "2025-06-10", comprovante: "pix_004.pdf", forma: "PIX", observacoes: "Pagamento antecipado" }
-  ]);
+  const [entradas, setEntradas] = useState([]);
+  const [saidas, setSaidas] = useState([]);
 
-  const [saidas, setSaidas] = useState([
-    { id: 1, categoria: "Salários", valor: 15000, data: "2025-06-05", descricao: "Folha de pagamento equipe", recorrente: true },
-    { id: 2, categoria: "Aluguel", valor: 3500, data: "2025-06-10", descricao: "Aluguel escritório", recorrente: true },
-    { id: 3, categoria: "Ferramentas", valor: 850, data: "2025-06-01", descricao: "CapCut Pro, Canva, Adobe", recorrente: true },
-    { id: 4, categoria: "Freelas", valor: 2800, data: "2025-06-15", descricao: "Designer freelancer", recorrente: false },
-    { id: 5, categoria: "Alimentação", valor: 1200, data: "2025-06-01", descricao: "Vale refeição equipe", recorrente: true },
-    { id: 6, categoria: "Marketing", valor: 1500, data: "2025-06-12", descricao: "Anúncios próprios", recorrente: false }
-  ]);
+  useEffect(() => {
+    fetchEntradas();
+    fetchSaidas();
+  }, []);
 
-  const handleSaveEntrada = (novaEntrada: any) => {
-    const id = Math.max(...entradas.map(e => e.id)) + 1;
-    setEntradas([...entradas, { ...novaEntrada, id }]);
+  const fetchEntradas = async () => {
+    const { data, error } = await supabase
+      .from("entradas")
+      .select("*")
+      .order("id", { ascending: true });
+    if (error) {
+      console.error("Erro ao buscar entradas:", error);
+    } else {
+      setEntradas(data || []);
+    }
   };
 
-  const handleSaveSaida = (novaSaida: any) => {
-    const id = Math.max(...saidas.map(s => s.id)) + 1;
-    setSaidas([...saidas, { ...novaSaida, id }]);
+  const fetchSaidas = async () => {
+    const { data, error } = await supabase
+      .from("saidas")
+      .select("*")
+      .order("id", { ascending: true });
+    if (error) {
+      console.error("Erro ao buscar saídas:", error);
+    } else {
+      setSaidas(data || []);
+    }
+  };
+
+  const handleSaveEntrada = async (novaEntrada: any) => {
+    const { data, error } = await supabase
+      .from("entradas")
+      .insert([novaEntrada])
+      .select()
+      .single();
+    if (error) {
+      console.error("Erro ao salvar entrada:", error);
+      alert("Erro ao salvar entrada");
+    } else if (data) {
+      await fetchEntradas();
+      setEntradaModal(false);
+    }
+  };
+
+  const handleSaveSaida = async (novaSaida: any) => {
+    // Ajustar os campos para corresponder à tabela 'saidas'
+    const saidaParaSalvar = {
+      categoria: novaSaida.categoria || null,
+      valor: novaSaida.valor || 0,
+      data: novaSaida.data || null,
+      descricao: novaSaida.descricao || null,
+      recorrente: novaSaida.recorrente || false,
+    };
+
+    const { data, error } = await supabase
+      .from("saidas")
+      .insert([saidaParaSalvar])
+      .select()
+      .single();
+    if (error) {
+      console.error("Erro ao salvar saída:", error);
+      alert("Erro ao salvar saída");
+    } else if (data) {
+      await fetchSaidas();
+      setSaidaModal(false);
+    }
   };
 
   const dadosComparacao = [

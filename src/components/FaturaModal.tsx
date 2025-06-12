@@ -1,8 +1,9 @@
 
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { Card, CardContent, CardHeader, CardTitle } from "./ui/card";
 import { Button } from "./ui/button";
 import { X, FileText, Upload } from "lucide-react";
+import { supabase } from "../integrations/supabase/client";
 
 interface FaturaModalProps {
   isOpen: boolean;
@@ -19,6 +20,40 @@ const FaturaModal = ({ isOpen, onClose, onSave }: FaturaModalProps) => {
     status: "pendente",
     anexo: null as File | null
   });
+
+  const [clientes, setClientes] = useState<{id: number; nome: string}[]>([]);
+  const [filteredClientes, setFilteredClientes] = useState<{id: number; nome: string}[]>([]);
+
+  useEffect(() => {
+    if (isOpen) {
+      fetchClientes();
+    }
+  }, [isOpen]);
+
+  const fetchClientes = async () => {
+    const { data, error } = await supabase
+      .from("clientes")
+      .select("id, nome")
+      .order("nome", { ascending: true });
+    if (error) {
+      console.error("Erro ao buscar clientes:", error);
+    } else {
+      setClientes(data || []);
+      setFilteredClientes(data || []);
+    }
+  };
+
+  const handleClienteChange = (value: string) => {
+    setFormData({...formData, cliente: value});
+    if (value === "") {
+      setFilteredClientes(clientes);
+    } else {
+      const filtered = clientes.filter(c =>
+        c.nome.toLowerCase().includes(value.toLowerCase())
+      );
+      setFilteredClientes(filtered);
+    }
+  };
 
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
@@ -77,9 +112,16 @@ const FaturaModal = ({ isOpen, onClose, onSave }: FaturaModalProps) => {
                 type="text"
                 required
                 value={formData.cliente}
-                onChange={(e) => setFormData({...formData, cliente: e.target.value})}
+                onChange={(e) => handleClienteChange(e.target.value)}
                 className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500"
+                list="clientes-list"
+                autoComplete="off"
               />
+              <datalist id="clientes-list">
+                {filteredClientes.map(cliente => (
+                  <option key={cliente.id} value={cliente.nome} />
+                ))}
+              </datalist>
             </div>
             
             <div>

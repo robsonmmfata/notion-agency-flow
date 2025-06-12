@@ -1,9 +1,10 @@
 import { Card, CardContent, CardHeader, CardTitle } from "../ui/card";
 import { Button } from "../ui/button";
 import { Plus, Download, Send, AlertCircle, CheckCircle, Clock } from "lucide-react";
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import FaturaModal from "../FaturaModal";
 import EnvioModal from "../EnvioModal";
+import { supabase } from "../../integrations/supabase/client";
 
 const FaturasModule = () => {
   const [filterStatus, setFilterStatus] = useState("todas");
@@ -12,62 +13,87 @@ const FaturasModule = () => {
   const [selectedFatura, setSelectedFatura] = useState(null);
   const [envioType, setEnvioType] = useState<"envio" | "cobranca">("envio");
 
-  const [faturas, setFaturas] = useState([
-    {
-      id: 1,
-      cliente: "ABC Marketing",
-      valor: 4500,
-      mesReferencia: "Junho 2025",
-      vencimento: "2025-07-15",
-      status: "pendente",
-      anexo: "fatura_abc_jun25.pdf",
-      dataPagamento: null
-    },
-    {
-      id: 2,
-      cliente: "Tech Solutions",
-      valor: 6800,
-      mesReferencia: "Junho 2025",
-      vencimento: "2025-07-01",
-      status: "paga",
-      anexo: "fatura_tech_jun25.pdf",
-      dataPagamento: "2025-06-28"
-    },
-    {
-      id: 3,
-      cliente: "E-commerce Plus",
-      valor: 3800,
-      mesReferencia: "Maio 2025",
-      vencimento: "2025-06-05",
-      status: "vencida",
-      anexo: "fatura_ecom_mai25.pdf",
-      dataPagamento: null
-    },
-    {
-      id: 4,
-      cliente: "StartUp Growth",
-      valor: 3200,
-      mesReferencia: "Junho 2025",
-      vencimento: "2025-07-20",
-      status: "enviada",
-      anexo: "fatura_startup_jun25.pdf",
-      dataPagamento: null
-    },
-    {
-      id: 5,
-      cliente: "Inovação Digital",
-      valor: 2800,
-      mesReferencia: "Junho 2025",
-      vencimento: "2025-07-10",
-      status: "pendente",
-      anexo: "fatura_inov_jun25.pdf",
-      dataPagamento: null
-    }
-  ]);
+  const [faturas, setFaturas] = useState([]);
 
-  const handleSaveFatura = (novaFatura: any) => {
-    const id = Math.max(...faturas.map(f => f.id)) + 1;
-    setFaturas([...faturas, { ...novaFatura, id }]);
+  useEffect(() => {
+    fetchFaturas();
+  }, []);
+
+  const fetchFaturas = async () => {
+    const { data, error } = await supabase
+      .from("faturas")
+      .select("id, valor, mes_referencia, vencimento, status, anexo, data_pagamento, cliente_id")
+      .order("id", { ascending: true });
+    if (error) {
+      console.error("Erro ao buscar faturas:", error);
+    } else {
+      // Mapear os campos para o formato esperado no frontend
+      const faturasFormatadas = (data || []).map(f => ({
+        id: f.id,
+        valor: f.valor,
+        mes_referencia: f.mes_referencia,
+        vencimento: f.vencimento,
+        status: f.status,
+        anexo: f.anexo,
+        data_pagamento: f.data_pagamento,
+        cliente: f.cliente_id, // manter cliente_id para compatibilidade
+      }));
+      setFaturas(faturasFormatadas);
+    }
+  };
+
+  const handleSaveFatura = async (novaFatura: any) => {
+    // Ajustar o campo cliente para cliente_id conforme a tabela
+    // O modal envia cliente como string (nome), mas a tabela espera cliente_id (integer)
+    // Portanto, precisamos buscar o cliente pelo nome para obter o id
+    const { data: clientes, error: errorClientes } = await supabase
+      .from("clientes")
+      .select("id")
+      .ilike("nome", novaFatura.cliente)
+      .limit(1)
+      .single();
+
+    if (errorClientes || !clientes) {
+      alert("Cliente não encontrado. Por favor, verifique o nome do cliente.");
+      return;
+    }
+
+    const faturaParaSalvar = {
+      ...novaFatura,
+      cliente_id: clientes.id,
+    };
+    delete faturaParaSalvar.cliente;
+
+    // Ajustar o nome do campo para o correto no banco de dados
+    if ('mesReferencia' in faturaParaSalvar) {
+      faturaParaSalvar.mes_referencia = faturaParaSalvar.mesReferencia;
+      delete faturaParaSalvar.mesReferencia;
+    }
+
+    // Remover campo dataPagamento pois não existe na tabela faturas
+    if ('dataPagamento' in faturaParaSalvar) {
+      delete faturaParaSalvar.dataPagamento;
+    }
+
+    console.log("faturaParaSalvar:", faturaParaSalvar);
+
+    // Log detalhado para inspecionar os campos
+    for (const [key, value] of Object.entries(faturaParaSalvar)) {
+      console.log(`Campo: ${key}, Valor:`, value);
+    }
+
+    const { data, error } = await supabase
+      .from("faturas")
+      .insert([faturaParaSalvar])
+      .select()
+      .single();
+    if (error) {
+      console.error("Erro ao salvar fatura:", error);
+      alert("Erro ao salvar fatura");
+    } else if (data) {
+      await fetchFaturas();
+      setFaturaModal(false);
+    }
   };
 
   const handleEnviarFatura = (fatura: any) => {

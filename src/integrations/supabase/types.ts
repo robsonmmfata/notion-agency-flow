@@ -9,7 +9,41 @@ export type Json =
 export type Database = {
   public: {
     Tables: {
-      [_ in never]: never
+      clientes: {
+        Row: {
+          id: number;
+          nome: string;
+          tipo_servico: string;
+          data_inicio: string;
+          data_fim: string;
+          valor: number;
+          forma_pagamento: string;
+          status: string;
+          proxima_cobranca: string;
+        };
+        Insert: {
+          id?: number;
+          nome: string;
+          tipo_servico: string;
+          data_inicio: string;
+          data_fim: string;
+          valor: number;
+          forma_pagamento: string;
+          status: string;
+          proxima_cobranca: string;
+        };
+        Update: {
+          id?: number;
+          nome?: string;
+          tipo_servico?: string;
+          data_inicio?: string;
+          data_fim?: string;
+          valor?: number;
+          forma_pagamento?: string;
+          status?: string;
+          proxima_cobranca?: string;
+        };
+      };
     }
     Views: {
       [_ in never]: never

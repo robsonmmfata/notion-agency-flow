@@ -92,3 +92,26 @@ INSERT INTO usuarios (email, senha, role) VALUES
 ('admin1@example.com', '123456eu', 'admin'),
 ('admin2@example.com', '123456eu', 'admin')
 ON CONFLICT (email) DO NOTHING;
+ 
+ -- Create table entradas if it does not exist
+CREATE TABLE IF NOT EXISTS entradas (
+  id SERIAL PRIMARY KEY,
+  cliente TEXT,
+  categoria TEXT,
+  valor NUMERIC,
+  data DATE,
+  forma TEXT,
+  descricao TEXT,
+  observacoes TEXT,
+  recorrente BOOLEAN DEFAULT FALSE,
+  comprovante TEXT
+);
+-- Tabela saidas
+CREATE TABLE IF NOT EXISTS saidas (
+  id SERIAL PRIMARY KEY,
+  categoria TEXT,
+  valor NUMERIC,
+  data DATE,
+  descricao TEXT,
+  recorrente BOOLEAN DEFAULT FALSE
+);

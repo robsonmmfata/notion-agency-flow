@@ -15,7 +15,7 @@ const CRMModule = () => {
   const [filterService, setFilterService] = useState("todos");
   const [clienteModal, setClienteModal] = useState(false);
   const [editClienteModal, setEditClienteModal] = useState(false);
-  const [selectedCliente, setSelectedCliente] = useState(null);
+  const [selectedCliente, setSelectedCliente] = useState<any | null>(null);
   const [importModal, setImportModal] = useState(false);
   const [actionMenu, setActionMenu] = useState<number | null>(null);
 
@@ -46,7 +46,7 @@ const CRMModule = () => {
     if (error) {
       console.error("Erro ao salvar cliente:", error);
       alert("Erro ao salvar cliente");
-    } else {
+    } else if (data) {
       setClientes((prev) => [...prev, data]);
       setClienteModal(false);
     }
@@ -68,7 +68,7 @@ const CRMModule = () => {
     if (error) {
       console.error("Erro ao atualizar cliente:", error);
       alert("Erro ao atualizar cliente");
-    } else {
+    } else if (data) {
       setClientes((prev) =>
         prev.map((c) => (c.id === data.id ? data : c))
       );
@@ -96,36 +96,76 @@ const CRMModule = () => {
     if (type === "csv") {
       const reader = new FileReader();
       reader.onload = async (e) => {
+        console.log("Arquivo lido, processando...");
         const text = e.target?.result as string;
+        console.log("Conteúdo do arquivo:", text);
         const lines = text.split("\n");
         const headers = lines[0].split(",");
+        console.log("Headers:", headers);
 
         const novosClientes = lines
           .slice(1)
           .filter((line) => line.trim())
           .map((line, index) => {
             const values = line.split(",");
-            return {
-              nome: values[0]?.replace(/"/g, "") || `Cliente ${index + 1}`,
-              tipo_servico: values[1]?.replace(/"/g, "") || "Gestão de Redes",
-              data_inicio:
-                values[2]?.replace(/"/g, "") ||
-                new Date().toISOString().split("T")[0],
-              data_fim:
-                values[3]?.replace(/"/g, "") ||
-                new Date(
-                  new Date().setFullYear(new Date().getFullYear() + 1)
-                )
-                  .toISOString()
-                  .split("T")[0],
-              valor: parseFloat(values[4]?.replace(/"/g, "")) || 0,
-              forma_pagamento: values[5]?.replace(/"/g, "") || "Mensal",
-              status: values[6]?.replace(/"/g, "") || "ativo",
-              proxima_cobranca:
-                values[7]?.replace(/"/g, "") ||
-                new Date().toISOString().split("T")[0],
+            console.log(`Processando linha ${index + 1}:`, values);
+
+            // Mapeamento dos campos do CSV exportado do Notion para os campos do banco (tabela Lista de Clientes)
+            // Extrair nome principal removendo URLs e emojis, limitando a 50 caracteres
+            const rawNome = values[0]?.replace(/"/g, "") || `Cliente ${index + 1}`;
+            // Remover emojis e URLs entre parênteses
+            const nomeSemEmoji = rawNome.replace(/^[^\w\s]+/, '').replace(/\([^)]*\)/g, '').trim();
+            let nome = nomeSemEmoji.length > 50 ? nomeSemEmoji.substring(0, 50) : nomeSemEmoji;
+
+            // Mapear status do CSV para status esperado no CRM
+            // Exemplo: "Executando" -> "ativo", "Lead" -> "lead", outros -> "ativo" por padrão
+            const statusRaw = values[1]?.replace(/"/g, "")?.toLowerCase() || "ativo";
+            let status = "ativo";
+            if (statusRaw === "executando") status = "ativo";
+            else if (statusRaw === "lead") status = "lead";
+            else if (statusRaw === "cancelado") status = "cancelado";
+            else status = "ativo";
+
+            // Converter datas para ISO (assumindo formato "May 18, 2025" ou vazio)
+            const parseDate = (dateStr: string) => {
+              const d = new Date(dateStr.replace(/"/g, ""));
+              return isNaN(d.getTime()) ? null : d.toISOString().split("T")[0];
             };
-          });
+            const data_inicio = parseDate(values[2]);
+            const proxima_cobranca = parseDate(values[3]);
+
+            // Valor: usar "Valor Pago" (values[8]) ou "Total" (values[6]) se valor pago vazio
+            const parseValor = (valStr: string) => {
+              if (!valStr) return 0;
+              const numStr = valStr.replace(/["R$\s,.]/g, "").replace(",", ".");
+              const num = parseFloat(numStr);
+              return isNaN(num) ? 0 : num;
+            };
+            let valor = parseValor(values[8]);
+            if (valor === 0) {
+              valor = parseValor(values[6]);
+            }
+
+            // Campos fixos ou padrão
+            const tipo_servico = "Gestão de Redes";
+            // data_fim: 1 ano após data_inicio, se data_inicio existir
+            const data_fim = data_inicio ? new Date(new Date(data_inicio).setFullYear(new Date(data_inicio).getFullYear() + 1)).toISOString().split("T")[0] : null;
+            const forma_pagamento = "Mensal";
+
+            return data_inicio ? {
+              nome,
+              tipo_servico,
+              data_inicio,
+              data_fim,
+              valor,
+              forma_pagamento,
+              status,
+              proxima_cobranca,
+            } : null;
+          })
+          .filter(cliente => cliente !== null);
+
+        console.log("Dados a serem inseridos:", novosClientes);
 
         const { data, error } = await supabase
           .from("clientes")
@@ -133,9 +173,13 @@ const CRMModule = () => {
 
         if (error) {
           console.error("Erro ao importar clientes:", error);
-          alert("Erro ao importar clientes");
+          if (error.details) {
+            console.error("Detalhes do erro:", error.details);
+          }
+          alert("Erro ao importar clientes: " + (error.message || "Erro desconhecido"));
         } else {
-          setClientes((prev) => [...prev, ...data]);
+          console.log("Clientes importados com sucesso:", data);
+          await fetchClientes();
           alert(`${data.length} clientes importados com sucesso!`);
           setImportModal(false);
         }
@@ -298,14 +342,14 @@ const CRMModule = () => {
                     <td className="py-3 px-4">
                       <div>
                         <p className="font-medium text-gray-900">{cliente.nome}</p>
-                        <p className="text-sm text-gray-500">{cliente.formaPagamento}</p>
+                        <p className="text-sm text-gray-500">{cliente.forma_pagamento}</p>
                       </div>
                     </td>
-                    <td className="py-3 px-4 text-gray-600">{cliente.tipoServico}</td>
+                    <td className="py-3 px-4 text-gray-600">{cliente.tipo_servico}</td>
                     <td className="py-3 px-4">
                       <div className="text-sm">
-                        <p className="text-gray-600">{new Date(cliente.dataInicio).toLocaleDateString()}</p>
-                        <p className="text-gray-500">até {new Date(cliente.dataFim).toLocaleDateString()}</p>
+                        <p className="text-gray-600">{new Date(cliente.data_inicio).toLocaleDateString()}</p>
+                        <p className="text-gray-500">até {new Date(cliente.data_fim).toLocaleDateString()}</p>
                       </div>
                     </td>
                     <td className="py-3 px-4 font-medium text-gray-900">
@@ -317,8 +361,8 @@ const CRMModule = () => {
                       </span>
                     </td>
                     <td className="py-3 px-4 text-sm text-gray-600">
-                      {cliente.proximaCobranca !== "-" ? 
-                        new Date(cliente.proximaCobranca).toLocaleDateString() : 
+                      {cliente.proxima_cobranca !== "-" ? 
+                        new Date(cliente.proxima_cobranca).toLocaleDateString() : 
                         "-"
                       }
                     </td>
