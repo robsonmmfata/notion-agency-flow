@@ -3,10 +3,12 @@ import { Button } from "../ui/button";
 import { Plus, User, Briefcase, CheckCircle, Clock, AlertTriangle } from "lucide-react";
 import { useState } from "react";
 import MembroModal from "../MembroModal";
+import TarefaModal from "../TarefaModal";
 
 const EquipeModule = () => {
   const [activeTab, setActiveTab] = useState("membros");
   const [membroModal, setMembroModal] = useState(false);
+  const [tarefaModal, setTarefaModal] = useState(false);
 
   const [membros, setMembros] = useState([
     {
@@ -51,31 +53,7 @@ const EquipeModule = () => {
     }
   ]);
 
-  const handleSaveMembro = (novoMembro: any) => {
-    const id = Math.max(...membros.map(m => m.id)) + 1;
-    setMembros([...membros, { ...novoMembro, id }]);
-  };
-
-  const vagasAbertas = [
-    {
-      id: 1,
-      titulo: "Especialista em Tráfego Pago",
-      departamento: "Marketing Digital",
-      tipo: "Tempo Integral",
-      salario: "R$ 4.500 - R$ 6.000",
-      status: "Recrutando"
-    },
-    {
-      id: 2,
-      titulo: "Editor de Vídeo",
-      departamento: "Criação",
-      tipo: "Freelancer",
-      salario: "R$ 80/hora",
-      status: "Aguardando aprovação"
-    }
-  ];
-
-  const tarefas = [
+  const [tarefas, setTarefas] = useState([
     {
       id: 1,
       titulo: "Criar campanha Instagram - Cliente ABC",
@@ -126,6 +104,35 @@ const EquipeModule = () => {
       prazo: "2025-06-25",
       progresso: 0
     }
+  ]);
+
+  const handleSaveMembro = (novoMembro: any) => {
+    const id = Math.max(...membros.map(m => m.id)) + 1;
+    setMembros([...membros, { ...novoMembro, id }]);
+  };
+
+  const handleSaveTarefa = (novaTarefa: any) => {
+    const id = Math.max(...tarefas.map(t => t.id)) + 1;
+    setTarefas([...tarefas, { ...novaTarefa, id }]);
+  };
+
+  const vagasAbertas = [
+    {
+      id: 1,
+      titulo: "Especialista em Tráfego Pago",
+      departamento: "Marketing Digital",
+      tipo: "Tempo Integral",
+      salario: "R$ 4.500 - R$ 6.000",
+      status: "Recrutando"
+    },
+    {
+      id: 2,
+      titulo: "Editor de Vídeo",
+      departamento: "Criação",
+      tipo: "Freelancer",
+      salario: "R$ 80/hora",
+      status: "Aguardando aprovação"
+    }
   ];
 
   const getStatusColor = (status: string) => {
@@ -167,7 +174,7 @@ const EquipeModule = () => {
           className="bg-blue-600 hover:bg-blue-700"
           onClick={() => {
             if (activeTab === "tarefas") {
-              alert("Modal de nova tarefa seria aberto aqui");
+              setTarefaModal(true);
             } else {
               setMembroModal(true);
             }
@@ -408,11 +415,18 @@ const EquipeModule = () => {
         </CardContent>
       </Card>
 
-      {/* Modal */}
+      {/* Modais */}
       <MembroModal
         isOpen={membroModal}
         onClose={() => setMembroModal(false)}
         onSave={handleSaveMembro}
+      />
+      
+      <TarefaModal
+        isOpen={tarefaModal}
+        onClose={() => setTarefaModal(false)}
+        onSave={handleSaveTarefa}
+        membros={membros}
       />
     </div>
   );

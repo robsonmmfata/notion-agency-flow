@@ -1,11 +1,16 @@
-
 import { Card, CardContent, CardHeader, CardTitle } from "../ui/card";
 import { Button } from "../ui/button";
 import { Plus, Download, Send, AlertCircle, CheckCircle, Clock } from "lucide-react";
 import { useState } from "react";
+import FaturaModal from "../FaturaModal";
+import EnvioModal from "../EnvioModal";
 
 const FaturasModule = () => {
   const [filterStatus, setFilterStatus] = useState("todas");
+  const [faturaModal, setFaturaModal] = useState(false);
+  const [envioModal, setEnvioModal] = useState(false);
+  const [selectedFatura, setSelectedFatura] = useState(null);
+  const [envioType, setEnvioType] = useState<"envio" | "cobranca">("envio");
 
   const [faturas, setFaturas] = useState([
     {
@@ -60,20 +65,30 @@ const FaturasModule = () => {
     }
   ]);
 
-  const handleEnviarFatura = (id: number) => {
-    setFaturas(faturas.map(fatura => 
-      fatura.id === id ? { ...fatura, status: "enviada" } : fatura
-    ));
-    alert("Fatura enviada com sucesso!");
+  const handleSaveFatura = (novaFatura: any) => {
+    const id = Math.max(...faturas.map(f => f.id)) + 1;
+    setFaturas([...faturas, { ...novaFatura, id }]);
   };
 
-  const handleCobrarFatura = (id: number) => {
-    const fatura = faturas.find(f => f.id === id);
-    alert(`Cobrança enviada para ${fatura?.cliente}. WhatsApp e e-mail de cobrança disparados.`);
+  const handleEnviarFatura = (fatura: any) => {
+    setSelectedFatura(fatura);
+    setEnvioType("envio");
+    setEnvioModal(true);
+    
+    // Atualiza o status da fatura para "enviada"
+    setFaturas(faturas.map(f => 
+      f.id === fatura.id ? { ...f, status: "enviada" } : f
+    ));
+  };
+
+  const handleCobrarFatura = (fatura: any) => {
+    setSelectedFatura(fatura);
+    setEnvioType("cobranca");
+    setEnvioModal(true);
   };
 
   const handleDownloadFatura = (anexo: string) => {
-    // Simula download
+    console.log(`Download iniciado: ${anexo}`);
     alert(`Download iniciado: ${anexo}`);
   };
 
@@ -113,7 +128,7 @@ const FaturasModule = () => {
         </div>
         <Button 
           className="bg-blue-600 hover:bg-blue-700"
-          onClick={() => alert("Modal de nova fatura seria aberto aqui")}
+          onClick={() => setFaturaModal(true)}
         >
           <Plus className="w-4 h-4 mr-2" />
           Nova Fatura
@@ -264,7 +279,7 @@ const FaturasModule = () => {
                           <Button 
                             size="sm" 
                             variant="outline"
-                            onClick={() => handleEnviarFatura(fatura.id)}
+                            onClick={() => handleEnviarFatura(fatura)}
                           >
                             <Send className="w-4 h-4 mr-1" />
                             Enviar
@@ -274,7 +289,7 @@ const FaturasModule = () => {
                           <Button 
                             size="sm" 
                             variant="destructive"
-                            onClick={() => handleCobrarFatura(fatura.id)}
+                            onClick={() => handleCobrarFatura(fatura)}
                           >
                             <AlertCircle className="w-4 h-4 mr-1" />
                             Cobrar
@@ -289,6 +304,20 @@ const FaturasModule = () => {
           </div>
         </CardContent>
       </Card>
+
+      {/* Modais */}
+      <FaturaModal
+        isOpen={faturaModal}
+        onClose={() => setFaturaModal(false)}
+        onSave={handleSaveFatura}
+      />
+      
+      <EnvioModal
+        isOpen={envioModal}
+        onClose={() => setEnvioModal(false)}
+        type={envioType}
+        fatura={selectedFatura}
+      />
     </div>
   );
 };

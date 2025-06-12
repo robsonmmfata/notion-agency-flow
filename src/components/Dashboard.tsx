@@ -5,6 +5,7 @@ import FinanceiroModule from "./modules/FinanceiroModule";
 import FaturasModule from "./modules/FaturasModule";
 import EquipeModule from "./modules/EquipeModule";
 import ConfiguracoesModule from "./modules/ConfiguracoesModule";
+import MensagensModule from "./modules/MensagensModule";
 
 interface DashboardProps {
   activeModule: string;
@@ -23,6 +24,8 @@ const Dashboard = ({ activeModule }: DashboardProps) => {
         return <FaturasModule />;
       case "equipe":
         return <EquipeModule />;
+      case "mensagens":
+        return <MensagensModule />;
       case "configuracoes":
         return <ConfiguracoesModule />;
       default:

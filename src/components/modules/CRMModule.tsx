@@ -3,12 +3,15 @@ import { Button } from "../ui/button";
 import { Plus, Search, Filter, MoreVertical, DollarSign, Calendar, User, Upload, FileText, Edit, Trash2 } from "lucide-react";
 import { useState } from "react";
 import ClienteModal from "../ClienteModal";
+import EditClienteModal from "../EditClienteModal";
 import ImportExportModal from "../ImportExportModal";
 
 const CRMModule = () => {
   const [filterStatus, setFilterStatus] = useState("todos");
   const [filterService, setFilterService] = useState("todos");
   const [clienteModal, setClienteModal] = useState(false);
+  const [editClienteModal, setEditClienteModal] = useState(false);
+  const [selectedCliente, setSelectedCliente] = useState(null);
   const [importModal, setImportModal] = useState(false);
   const [actionMenu, setActionMenu] = useState<number | null>(null);
 
@@ -75,22 +78,54 @@ const CRMModule = () => {
     setClientes([...clientes, { ...novoCliente, id }]);
   };
 
-  const handleImportContacts = (file: File, type: string) => {
-    console.log(`Importando contatos do arquivo: ${file.name} (${type})`);
-    // Aqui você implementaria a lógica de importação de contatos
-    alert(`${file.name} importado com sucesso! Novos contatos adicionados.`);
+  const handleEditCliente = (cliente: any) => {
+    setSelectedCliente(cliente);
+    setEditClienteModal(true);
+    setActionMenu(null);
+  };
+
+  const handleUpdateCliente = (clienteAtualizado: any) => {
+    setClientes(clientes.map(c => 
+      c.id === clienteAtualizado.id ? clienteAtualizado : c
+    ));
   };
 
   const handleDeleteCliente = (id: number) => {
-    if (confirm("Tem certeza que deseja excluir este cliente?")) {
-      setClientes(clientes.filter(c => c.id !== id));
-      setActionMenu(null);
-    }
+    setClientes(clientes.filter(c => c.id !== id));
   };
 
-  const handleEditCliente = (id: number) => {
-    alert(`Editando cliente ${id} - Modal de edição seria aberto aqui`);
-    setActionMenu(null);
+  const handleImportContacts = (file: File, type: string) => {
+    console.log(`Importando contatos do arquivo: ${file.name} (${type})`);
+    
+    if (type === "csv") {
+      const reader = new FileReader();
+      reader.onload = (e) => {
+        const text = e.target?.result as string;
+        const lines = text.split('\n');
+        const headers = lines[0].split(',');
+        
+        const novosClientes = lines.slice(1).filter(line => line.trim()).map((line, index) => {
+          const values = line.split(',');
+          return {
+            id: Math.max(...clientes.map(c => c.id)) + index + 1,
+            nome: values[0]?.replace(/"/g, '') || `Cliente ${index + 1}`,
+            tipoServico: values[1]?.replace(/"/g, '') || "Gestão de Redes",
+            dataInicio: values[2]?.replace(/"/g, '') || new Date().toISOString().split('T')[0],
+            dataFim: values[3]?.replace(/"/g, '') || new Date(new Date().setFullYear(new Date().getFullYear() + 1)).toISOString().split('T')[0],
+            valor: parseFloat(values[4]?.replace(/"/g, '')) || 0,
+            formaPagamento: values[5]?.replace(/"/g, '') || "Mensal",
+            status: values[6]?.replace(/"/g, '') || "ativo",
+            proximaCobranca: values[7]?.replace(/"/g, '') || new Date().toISOString().split('T')[0]
+          };
+        });
+        
+        setClientes(prev => [...prev, ...novosClientes]);
+        alert(`${novosClientes.length} clientes importados com sucesso!`);
+      };
+      reader.readAsText(file);
+    } else {
+      alert(`${file.name} importado com sucesso! Novos clientes adicionados.`);
+    }
   };
 
   const getStatusColor = (status: string) => {
@@ -278,7 +313,7 @@ const CRMModule = () => {
                       {actionMenu === cliente.id && (
                         <div className="absolute right-0 top-8 bg-white border border-gray-200 rounded-lg shadow-lg z-10 w-40">
                           <button
-                            onClick={() => handleEditCliente(cliente.id)}
+                            onClick={() => handleEditCliente(cliente)}
                             className="w-full px-4 py-2 text-left hover:bg-gray-50 flex items-center space-x-2"
                           >
                             <Edit className="w-4 h-4" />
@@ -307,6 +342,14 @@ const CRMModule = () => {
         isOpen={clienteModal}
         onClose={() => setClienteModal(false)}
         onSave={handleSaveCliente}
+      />
+      
+      <EditClienteModal
+        isOpen={editClienteModal}
+        onClose={() => setEditClienteModal(false)}
+        onSave={handleUpdateCliente}
+        onDelete={handleDeleteCliente}
+        cliente={selectedCliente}
       />
       
       <ImportExportModal
