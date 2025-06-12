@@ -1,13 +1,46 @@
 
 import { Card, CardContent, CardHeader, CardTitle } from "../ui/card";
 import { Button } from "../ui/button";
-import { Settings, User, Bell, Shield, Database, Download, Upload } from "lucide-react";
+import { Settings, User, Bell, Shield, Database, Download, Upload, Clock } from "lucide-react";
 import { useState } from "react";
 import ImportExportModal from "../ImportExportModal";
+import NotificacaoModal from "../NotificacaoModal";
+import BackupModal from "../BackupModal";
 
 const ConfiguracoesModule = () => {
   const [importModal, setImportModal] = useState(false);
   const [exportModal, setExportModal] = useState(false);
+  const [notificacaoModal, setNotificacaoModal] = useState(false);
+  const [backupModal, setBackupModal] = useState(false);
+
+  const [notificacoes, setNotificacoes] = useState([
+    {
+      id: 1,
+      titulo: "Faturas vencendo",
+      descricao: "Alertas 7 dias antes do vencimento",
+      tipo: "fatura_vencendo",
+      ativo: true,
+      diasAntecedencia: 7
+    },
+    {
+      id: 2,
+      titulo: "Novos pagamentos",
+      descricao: "Notificar quando receber pagamentos",
+      tipo: "pagamento_recebido",
+      ativo: true,
+      diasAntecedencia: null
+    }
+  ]);
+
+  const [backupConfig, setBackupConfig] = useState({
+    automatico: true,
+    horario: "03:00",
+    frequencia: "diario",
+    retencao: 30,
+    notificarSucesso: true,
+    notificarErro: true,
+    compressao: true
+  });
 
   const handleImport = (file: File, type: string) => {
     console.log(`Importando arquivo: ${file.name} (${type})`);
@@ -19,6 +52,31 @@ const ConfiguracoesModule = () => {
     console.log(`Exportando dados em formato: ${format}`);
     // Aqui você implementaria a lógica de exportação
     alert(`Dados exportados em formato ${format.toUpperCase()}!`);
+  };
+
+  const handleSaveNotificacao = (novaNotificacao: any) => {
+    const id = Math.max(...notificacoes.map(n => n.id), 0) + 1;
+    setNotificacoes([...notificacoes, { ...novaNotificacao, id }]);
+    alert("Notificação criada com sucesso!");
+  };
+
+  const handleUpdateNotificacao = (id: number, notificacaoAtualizada: any) => {
+    setNotificacoes(notificacoes.map(n => 
+      n.id === id ? { ...notificacaoAtualizada, id } : n
+    ));
+    alert("Notificação atualizada com sucesso!");
+  };
+
+  const handleDeleteNotificacao = (id: number) => {
+    if (confirm("Tem certeza que deseja excluir esta notificação?")) {
+      setNotificacoes(notificacoes.filter(n => n.id !== id));
+      alert("Notificação excluída com sucesso!");
+    }
+  };
+
+  const handleSaveBackupConfig = (config: any) => {
+    setBackupConfig(config);
+    console.log("Configurações de backup salvas:", config);
   };
 
   return (
@@ -117,34 +175,29 @@ const ConfiguracoesModule = () => {
             </CardTitle>
           </CardHeader>
           <CardContent className="space-y-4">
-            <div className="flex items-center justify-between">
-              <div>
-                <p className="font-medium">Faturas vencendo</p>
-                <p className="text-sm text-gray-500">Alertas 7 dias antes do vencimento</p>
+            {notificacoes.slice(0, 3).map((notificacao) => (
+              <div key={notificacao.id} className="flex items-center justify-between">
+                <div>
+                  <p className="font-medium">{notificacao.titulo}</p>
+                  <p className="text-sm text-gray-500">{notificacao.descricao}</p>
+                </div>
+                <input 
+                  type="checkbox" 
+                  checked={notificacao.ativo} 
+                  onChange={(e) => handleUpdateNotificacao(notificacao.id, { ...notificacao, ativo: e.target.checked })}
+                  className="rounded" 
+                />
               </div>
-              <input type="checkbox" defaultChecked className="rounded" />
-            </div>
-            <div className="flex items-center justify-between">
-              <div>
-                <p className="font-medium">Novos pagamentos</p>
-                <p className="text-sm text-gray-500">Notificar quando receber pagamentos</p>
-              </div>
-              <input type="checkbox" defaultChecked className="rounded" />
-            </div>
-            <div className="flex items-center justify-between">
-              <div>
-                <p className="font-medium">Tarefas atrasadas</p>
-                <p className="text-sm text-gray-500">Alertas para tarefas com prazo vencido</p>
-              </div>
-              <input type="checkbox" defaultChecked className="rounded" />
-            </div>
-            <div className="flex items-center justify-between">
-              <div>
-                <p className="font-medium">Relatórios mensais</p>
-                <p className="text-sm text-gray-500">Envio automático no final do mês</p>
-              </div>
-              <input type="checkbox" className="rounded" />
-            </div>
+            ))}
+            
+            <Button 
+              variant="outline" 
+              className="w-full"
+              onClick={() => setNotificacaoModal(true)}
+            >
+              <Settings className="w-4 h-4 mr-2" />
+              Gerenciar Notificações
+            </Button>
           </CardContent>
         </Card>
 
@@ -200,19 +253,30 @@ const ConfiguracoesModule = () => {
           <div className="flex items-center justify-between p-3 bg-gray-50 rounded-lg">
             <div>
               <p className="font-medium">Último backup</p>
-              <p className="text-sm text-gray-500">Hoje às 03:00</p>
+              <p className="text-sm text-gray-500">
+                {backupConfig.automatico ? `Automático às ${backupConfig.horario}` : 'Manual'}
+              </p>
             </div>
             <div className="w-3 h-3 bg-green-500 rounded-full"></div>
           </div>
           
-          <div className="space-y-2">
+          <div className="grid grid-cols-2 gap-4">
             <Button 
               variant="outline" 
-              className="w-full flex items-center justify-center space-x-2"
+              className="flex items-center justify-center space-x-2"
               onClick={() => alert("Backup manual iniciado!")}
             >
               <Database className="w-4 h-4" />
-              <span>Fazer Backup Manual</span>
+              <span>Backup Manual</span>
+            </Button>
+            
+            <Button 
+              variant="outline" 
+              className="flex items-center justify-center space-x-2"
+              onClick={() => setBackupModal(true)}
+            >
+              <Clock className="w-4 h-4" />
+              <span>Configurar</span>
             </Button>
           </div>
 
@@ -220,9 +284,16 @@ const ConfiguracoesModule = () => {
             <div className="flex items-center justify-between">
               <div>
                 <p className="font-medium">Backup automático</p>
-                <p className="text-sm text-gray-500">Diário às 03:00</p>
+                <p className="text-sm text-gray-500">
+                  {backupConfig.frequencia.charAt(0).toUpperCase() + backupConfig.frequencia.slice(1)} às {backupConfig.horario}
+                </p>
               </div>
-              <input type="checkbox" defaultChecked className="rounded" />
+              <input 
+                type="checkbox" 
+                checked={backupConfig.automatico}
+                onChange={(e) => setBackupConfig({...backupConfig, automatico: e.target.checked})}
+                className="rounded" 
+              />
             </div>
           </div>
         </CardContent>
@@ -267,6 +338,22 @@ const ConfiguracoesModule = () => {
         onClose={() => setExportModal(false)}
         type="export"
         onExport={handleExport}
+      />
+
+      <NotificacaoModal
+        isOpen={notificacaoModal}
+        onClose={() => setNotificacaoModal(false)}
+        notificacoes={notificacoes}
+        onSave={handleSaveNotificacao}
+        onUpdate={handleUpdateNotificacao}
+        onDelete={handleDeleteNotificacao}
+      />
+
+      <BackupModal
+        isOpen={backupModal}
+        onClose={() => setBackupModal(false)}
+        backupConfig={backupConfig}
+        onSave={handleSaveBackupConfig}
       />
     </div>
   );

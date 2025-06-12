@@ -14,14 +14,21 @@ interface EnvioModalProps {
 const EnvioModal = ({ isOpen, onClose, type, fatura }: EnvioModalProps) => {
   const [selectedMethod, setSelectedMethod] = useState<"whatsapp" | "email" | "">("");
   const [message, setMessage] = useState("");
+  const [whatsappNumber, setWhatsappNumber] = useState("");
+  const [emailAddress, setEmailAddress] = useState("");
+  const [isGeneratingPDF, setIsGeneratingPDF] = useState(false);
 
   const handleGeneratePDF = () => {
+    setIsGeneratingPDF(true);
     // Simula geração de PDF
-    const link = document.createElement('a');
-    link.href = '#';
-    link.download = `boleto_${fatura?.cliente?.replace(/\s+/g, '_')}_${fatura?.mesReferencia?.replace(/\s+/g, '_')}.pdf`;
-    console.log(`Gerando boleto PDF para ${fatura?.cliente}`);
-    alert(`Boleto PDF gerado para ${fatura?.cliente}!`);
+    setTimeout(() => {
+      const link = document.createElement('a');
+      link.href = '#';
+      link.download = `boleto_${fatura?.cliente?.replace(/\s+/g, '_')}_${fatura?.mesReferencia?.replace(/\s+/g, '_')}.pdf`;
+      console.log(`Gerando boleto PDF para ${fatura?.cliente}`);
+      alert(`Boleto PDF gerado para ${fatura?.cliente}!`);
+      setIsGeneratingPDF(false);
+    }, 2000);
   };
 
   const handleSend = () => {
@@ -31,15 +38,36 @@ const EnvioModal = ({ isOpen, onClose, type, fatura }: EnvioModalProps) => {
     }
 
     if (selectedMethod === "whatsapp") {
-      console.log(`Enviando via WhatsApp: ${message}`);
-      alert(`Mensagem enviada via WhatsApp para ${fatura?.cliente}!`);
+      if (!whatsappNumber.trim()) {
+        alert("Digite o número do WhatsApp");
+        return;
+      }
+      
+      // Envio real via WhatsApp
+      const whatsappMessage = encodeURIComponent(message);
+      const whatsappUrl = `https://wa.me/${whatsappNumber.replace(/\D/g, '')}?text=${whatsappMessage}`;
+      window.open(whatsappUrl, '_blank');
+      console.log(`Enviando via WhatsApp para ${whatsappNumber}: ${message}`);
+      alert(`Redirecionando para WhatsApp (${whatsappNumber})!`);
     } else {
-      console.log(`Enviando via Email: ${message}`);
-      alert(`Email enviado para ${fatura?.cliente}!`);
+      if (!emailAddress.trim()) {
+        alert("Digite o endereço de email");
+        return;
+      }
+      
+      // Envio real via Email
+      const subject = encodeURIComponent(`Fatura ${fatura?.mesReferencia} - ${fatura?.cliente}`);
+      const body = encodeURIComponent(message);
+      const mailtoUrl = `mailto:${emailAddress}?subject=${subject}&body=${body}`;
+      window.open(mailtoUrl, '_blank');
+      console.log(`Enviando via Email para ${emailAddress}: ${message}`);
+      alert(`Abrindo cliente de email para enviar para ${emailAddress}!`);
     }
     
     setMessage("");
     setSelectedMethod("");
+    setWhatsappNumber("");
+    setEmailAddress("");
     onClose();
   };
 
@@ -75,9 +103,10 @@ const EnvioModal = ({ isOpen, onClose, type, fatura }: EnvioModalProps) => {
               onClick={handleGeneratePDF}
               className="w-full flex items-center justify-center space-x-2 mb-4"
               variant="outline"
+              disabled={isGeneratingPDF}
             >
               <FileText className="w-4 h-4" />
-              <span>Gerar Boleto PDF</span>
+              <span>{isGeneratingPDF ? "Gerando..." : "Gerar Boleto PDF"}</span>
             </Button>
           </div>
 
@@ -107,6 +136,36 @@ const EnvioModal = ({ isOpen, onClose, type, fatura }: EnvioModalProps) => {
             </div>
           </div>
 
+          {selectedMethod === "whatsapp" && (
+            <div>
+              <label className="block text-sm font-medium text-gray-700 mb-2">
+                Número do WhatsApp (com DDD):
+              </label>
+              <input
+                type="text"
+                value={whatsappNumber}
+                onChange={(e) => setWhatsappNumber(e.target.value)}
+                placeholder="Ex: 5511999999999"
+                className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-green-500"
+              />
+            </div>
+          )}
+
+          {selectedMethod === "email" && (
+            <div>
+              <label className="block text-sm font-medium text-gray-700 mb-2">
+                Endereço de Email:
+              </label>
+              <input
+                type="email"
+                value={emailAddress}
+                onChange={(e) => setEmailAddress(e.target.value)}
+                placeholder="cliente@exemplo.com"
+                className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500"
+              />
+            </div>
+          )}
+
           {selectedMethod && (
             <div>
               <label className="block text-sm font-medium text-gray-700 mb-2">
@@ -126,7 +185,11 @@ const EnvioModal = ({ isOpen, onClose, type, fatura }: EnvioModalProps) => {
             <Button variant="outline" onClick={onClose} className="flex-1">
               Cancelar
             </Button>
-            <Button onClick={handleSend} className="flex-1" disabled={!selectedMethod}>
+            <Button 
+              onClick={handleSend} 
+              className="flex-1" 
+              disabled={!selectedMethod || (selectedMethod === "whatsapp" && !whatsappNumber) || (selectedMethod === "email" && !emailAddress)}
+            >
               {selectedMethod === "whatsapp" ? "Enviar WhatsApp" : "Enviar Email"}
             </Button>
           </div>
