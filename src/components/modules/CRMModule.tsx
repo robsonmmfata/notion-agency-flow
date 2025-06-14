@@ -180,7 +180,7 @@ const CRMModule = () => {
         } else {
           console.log("Clientes importados com sucesso:", data);
           await fetchClientes();
-          alert(`${data ? data.length : 0} clientes importados com sucesso!`);
+          alert(`${(data ?? []).length} clientes importados com sucesso!`);
           setImportModal(false);
         }
       };
