@@ -1,4 +1,5 @@
 import { useState } from "react";
+import { useEffect } from "react";
 import { supabase } from "../integrations/supabase/client";
 
 const Auth = () => {
@@ -7,6 +8,15 @@ const Auth = () => {
   const [password, setPassword] = useState("");
   const [loading, setLoading] = useState(false);
   const [errorMsg, setErrorMsg] = useState("");
+
+  useEffect(() => {
+    // Se usuário já está logado, redireciona para "/"
+    supabase.auth.getSession().then(({ data: { session } }) => {
+      if (session && session.user) {
+        window.location.href = "/";
+      }
+    });
+  }, []);
 
   const handleLogin = async () => {
     setLoading(true);
@@ -26,9 +36,13 @@ const Auth = () => {
   const handleSignup = async () => {
     setLoading(true);
     setErrorMsg("");
+    // O Supabase exige confirmações por email se não desativado, então avise usuário.
     const { error } = await supabase.auth.signUp({
       email,
       password,
+      options: {
+        emailRedirectTo: `${window.location.origin}/`,
+      }
     });
     setLoading(false);
     if (error) {
@@ -108,6 +122,11 @@ const Auth = () => {
               </button>
             </>
           )}
+        </div>
+        <div className="mt-6 p-2 text-xs text-gray-600 border-t">
+          <div><strong>Test admin:</strong></div>
+          <div>Email: admin1@example.com<br/>Senha: 123456eu</div>
+          <div>Email: admin2@example.com<br/>Senha: 123456eu</div>
         </div>
       </div>
     </div>
