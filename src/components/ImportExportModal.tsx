@@ -1,4 +1,3 @@
-
 import { useState } from "react";
 import { Card, CardContent, CardHeader, CardTitle } from "./ui/card";
 import { Button } from "./ui/button";
@@ -186,7 +185,6 @@ const ImportExportModal = ({ isOpen, onClose, type, onImport, onExport }: Import
                 onClick={handleImport} 
                 disabled={!selectedFile || processing}
                 className="w-full"
-                loading={processing}
               >
                 {processing ? "Importando..." : "Importar Arquivo"}
               </Button>
