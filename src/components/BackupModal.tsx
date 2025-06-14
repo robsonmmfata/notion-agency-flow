@@ -36,6 +36,21 @@ const BackupModal = ({ isOpen, onClose, backupConfig, onSave }: BackupModalProps
     onClose();
   };
 
+  const handleDownload = (data: string, filename: string) => {
+    const blob = new Blob([data], { type: "application/zip" });
+    const url = URL.createObjectURL(blob);
+
+    const a = document.createElement("a");
+    a.href = url;
+    a.download = filename;
+    document.body.appendChild(a);
+    a.click();
+    setTimeout(() => {
+      document.body.removeChild(a);
+      URL.revokeObjectURL(url);
+    }, 100);
+  };
+
   const handleBackupManual = () => {
     if (isProcessing) return;
     setIsProcessing(true);
@@ -43,13 +58,23 @@ const BackupModal = ({ isOpen, onClose, backupConfig, onSave }: BackupModalProps
       title: "Backup manual iniciado",
       description: "Backup manual está em execução. Você será notificado ao finalizar.",
     });
-    // Aqui você pode chamar uma API real futuramente!
+    // Simula processo de backup
     setTimeout(() => {
       setIsProcessing(false);
       toast({
         title: "Backup concluído",
         description: "O backup manual foi finalizado com sucesso!",
       });
+      // Gera um arquivo fictício para download
+      const now = new Date();
+      const dateStr = now
+        .toISOString()
+        .replace(/T/, "_")
+        .replace(/:/g, "-")
+        .split(".")[0];
+      const fileName = `backup_sistema_${dateStr}.zip`;
+      const conteudoSimulado = `Backup gerado em ${now.toLocaleString()}\n\n(simulação de conteúdo do backup)`;
+      handleDownload(conteudoSimulado, fileName);
     }, 3400);
     console.log("Iniciando backup manual...");
   };
