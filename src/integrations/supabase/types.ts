@@ -11,39 +11,344 @@ export type Database = {
     Tables: {
       clientes: {
         Row: {
-          id: number;
-          nome: string;
-          tipo_servico: string;
-          data_inicio: string;
-          data_fim: string;
-          valor: number;
-          forma_pagamento: string;
-          status: string;
-          proxima_cobranca: string;
-        };
+          data_fim: string
+          data_inicio: string
+          forma_pagamento: string
+          id: number
+          nome: string
+          proxima_cobranca: string
+          status: string
+          tipo_servico: string
+          valor: number
+        }
         Insert: {
-          id?: number;
-          nome: string;
-          tipo_servico: string;
-          data_inicio: string;
-          data_fim: string;
-          valor: number;
-          forma_pagamento: string;
-          status: string;
-          proxima_cobranca: string;
-        };
+          data_fim: string
+          data_inicio: string
+          forma_pagamento: string
+          id?: number
+          nome: string
+          proxima_cobranca: string
+          status: string
+          tipo_servico: string
+          valor: number
+        }
         Update: {
-          id?: number;
-          nome?: string;
-          tipo_servico?: string;
-          data_inicio?: string;
-          data_fim?: string;
-          valor?: number;
-          forma_pagamento?: string;
-          status?: string;
-          proxima_cobranca?: string;
-        };
-      };
+          data_fim?: string
+          data_inicio?: string
+          forma_pagamento?: string
+          id?: number
+          nome?: string
+          proxima_cobranca?: string
+          status?: string
+          tipo_servico?: string
+          valor?: number
+        }
+        Relationships: []
+      }
+      contatos_mensagens: {
+        Row: {
+          email: string | null
+          id: number
+          nome: string
+          telefone: string | null
+        }
+        Insert: {
+          email?: string | null
+          id?: number
+          nome: string
+          telefone?: string | null
+        }
+        Update: {
+          email?: string | null
+          id?: number
+          nome?: string
+          telefone?: string | null
+        }
+        Relationships: []
+      }
+      entradas: {
+        Row: {
+          categoria: string | null
+          cliente: string | null
+          comprovante: string | null
+          data: string | null
+          descricao: string | null
+          forma: string | null
+          id: number
+          observacoes: string | null
+          recorrente: boolean | null
+          valor: number | null
+        }
+        Insert: {
+          categoria?: string | null
+          cliente?: string | null
+          comprovante?: string | null
+          data?: string | null
+          descricao?: string | null
+          forma?: string | null
+          id?: number
+          observacoes?: string | null
+          recorrente?: boolean | null
+          valor?: number | null
+        }
+        Update: {
+          categoria?: string | null
+          cliente?: string | null
+          comprovante?: string | null
+          data?: string | null
+          descricao?: string | null
+          forma?: string | null
+          id?: number
+          observacoes?: string | null
+          recorrente?: boolean | null
+          valor?: number | null
+        }
+        Relationships: []
+      }
+      entradas_financeiras: {
+        Row: {
+          cliente: string
+          comprovante: string | null
+          data: string
+          forma: string | null
+          id: number
+          observacoes: string | null
+          valor: number
+        }
+        Insert: {
+          cliente: string
+          comprovante?: string | null
+          data: string
+          forma?: string | null
+          id?: number
+          observacoes?: string | null
+          valor: number
+        }
+        Update: {
+          cliente?: string
+          comprovante?: string | null
+          data?: string
+          forma?: string | null
+          id?: number
+          observacoes?: string | null
+          valor?: number
+        }
+        Relationships: []
+      }
+      faturas: {
+        Row: {
+          anexo: string | null
+          cliente_id: number
+          data_pagamento: string | null
+          id: number
+          mes_referencia: string
+          status: string
+          valor: number
+          vencimento: string
+        }
+        Insert: {
+          anexo?: string | null
+          cliente_id: number
+          data_pagamento?: string | null
+          id?: number
+          mes_referencia: string
+          status: string
+          valor: number
+          vencimento: string
+        }
+        Update: {
+          anexo?: string | null
+          cliente_id?: number
+          data_pagamento?: string | null
+          id?: number
+          mes_referencia?: string
+          status?: string
+          valor?: number
+          vencimento?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "faturas_cliente_id_fkey"
+            columns: ["cliente_id"]
+            isOneToOne: false
+            referencedRelation: "clientes"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      membros: {
+        Row: {
+          avatar: string | null
+          data_entrada: string
+          email: string
+          funcao: string
+          id: number
+          nome: string
+          status: string
+          tarefas_ativas: number
+        }
+        Insert: {
+          avatar?: string | null
+          data_entrada: string
+          email: string
+          funcao: string
+          id?: number
+          nome: string
+          status: string
+          tarefas_ativas?: number
+        }
+        Update: {
+          avatar?: string | null
+          data_entrada?: string
+          email?: string
+          funcao?: string
+          id?: number
+          nome?: string
+          status?: string
+          tarefas_ativas?: number
+        }
+        Relationships: []
+      }
+      profiles: {
+        Row: {
+          created_at: string
+          email: string
+          id: string
+          role: string
+        }
+        Insert: {
+          created_at?: string
+          email: string
+          id: string
+          role?: string
+        }
+        Update: {
+          created_at?: string
+          email?: string
+          id?: string
+          role?: string
+        }
+        Relationships: []
+      }
+      saidas: {
+        Row: {
+          categoria: string | null
+          data: string | null
+          descricao: string | null
+          id: number
+          recorrente: boolean | null
+          valor: number | null
+        }
+        Insert: {
+          categoria?: string | null
+          data?: string | null
+          descricao?: string | null
+          id?: number
+          recorrente?: boolean | null
+          valor?: number | null
+        }
+        Update: {
+          categoria?: string | null
+          data?: string | null
+          descricao?: string | null
+          id?: number
+          recorrente?: boolean | null
+          valor?: number | null
+        }
+        Relationships: []
+      }
+      saidas_financeiras: {
+        Row: {
+          categoria: string
+          data: string
+          descricao: string | null
+          id: number
+          recorrente: boolean
+          valor: number
+        }
+        Insert: {
+          categoria: string
+          data: string
+          descricao?: string | null
+          id?: number
+          recorrente?: boolean
+          valor: number
+        }
+        Update: {
+          categoria?: string
+          data?: string
+          descricao?: string | null
+          id?: number
+          recorrente?: boolean
+          valor?: number
+        }
+        Relationships: []
+      }
+      tarefas: {
+        Row: {
+          cliente: string
+          id: number
+          prazo: string
+          prioridade: string
+          progresso: number
+          responsavel_id: number
+          status: string
+          titulo: string
+        }
+        Insert: {
+          cliente: string
+          id?: number
+          prazo: string
+          prioridade: string
+          progresso?: number
+          responsavel_id: number
+          status: string
+          titulo: string
+        }
+        Update: {
+          cliente?: string
+          id?: number
+          prazo?: string
+          prioridade?: string
+          progresso?: number
+          responsavel_id?: number
+          status?: string
+          titulo?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "tarefas_responsavel_id_fkey"
+            columns: ["responsavel_id"]
+            isOneToOne: false
+            referencedRelation: "membros"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      usuarios: {
+        Row: {
+          criado_em: string | null
+          email: string
+          id: number
+          role: string
+          senha: string
+        }
+        Insert: {
+          criado_em?: string | null
+          email: string
+          id?: number
+          role?: string
+          senha: string
+        }
+        Update: {
+          criado_em?: string | null
+          email?: string
+          id?: number
+          role?: string
+          senha?: string
+        }
+        Relationships: []
+      }
     }
     Views: {
       [_ in never]: never

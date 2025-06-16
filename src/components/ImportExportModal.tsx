@@ -1,8 +1,8 @@
-
 import { useState } from "react";
 import { Card, CardContent, CardHeader, CardTitle } from "./ui/card";
 import { Button } from "./ui/button";
 import { Upload, Download, X, FileText, FileSpreadsheet, Archive, FileImage } from "lucide-react";
+import { useToast } from "@/hooks/use-toast";
 
 interface ImportExportModalProps {
   isOpen: boolean;
@@ -15,6 +15,8 @@ interface ImportExportModalProps {
 const ImportExportModal = ({ isOpen, onClose, type, onImport, onExport }: ImportExportModalProps) => {
   const [selectedFormat, setSelectedFormat] = useState<string>("");
   const [selectedFile, setSelectedFile] = useState<File | null>(null);
+  const { toast } = useToast();
+  const [processing, setProcessing] = useState(false);
 
   const formats = [
     { type: "csv", label: "CSV", icon: FileText, description: "Arquivo separado por vírgulas" },
@@ -33,18 +35,110 @@ const ImportExportModal = ({ isOpen, onClose, type, onImport, onExport }: Import
     }
   };
 
-  const handleImport = () => {
-    if (selectedFile && onImport) {
-      onImport(selectedFile, selectedFormat);
-      onClose();
+  const handleImport = async () => {
+    if (!selectedFile) return;
+    setProcessing(true);
+
+    const fileType = selectedFormat;
+    if (onImport) {
+      onImport(selectedFile, fileType);
     }
+
+    if (fileType === "csv") {
+      // Simulando parse CSV e contagem de contatos
+      const text = await selectedFile.text();
+      const linhas = text.split(/\r?\n/).filter(l => l.trim());
+      const numItens = linhas.length > 1 ? linhas.length - 1 : 0;
+      toast({
+        title: "Importação concluída!",
+        description: `${numItens} registros CSV importados com sucesso.`,
+      });
+    } else {
+      toast({
+        title: "Importação realizada",
+        description: `Arquivo ${selectedFile.name} importado com sucesso!`,
+      });
+    }
+    setProcessing(false);
+    setSelectedFile(null);
+    setSelectedFormat("");
+    onClose();
+  };
+
+  const gerarArquivo = (format: string): { content: string | Blob, filename: string, mime: string } => {
+    const now = new Date();
+    const dateStr = now.toISOString().split("T")[0];
+    let filename = "";
+    let mime = "";
+    let content: string | Blob = "";
+
+    switch (format) {
+      case "csv":
+        filename = `dados_exportacao_${dateStr}.csv`;
+        mime = "text/csv";
+        content = `"Nome","Telefone","Email"\nExemplo,11999999999,exemplo@email.com\n`;
+        break;
+      case "xls":
+        filename = `dados_exportacao_${dateStr}.xls`;
+        mime = "application/vnd.ms-excel";
+        content = `Nome\tTelefone\tEmail\nExemplo\t11999999999\texemplo@email.com\n`;
+        break;
+      case "zip":
+        filename = `dados_exportacao_${dateStr}.zip`;
+        mime = "application/zip";
+        content = new Blob(["Simulação de backup/zip"], { type: "text/plain" });
+        break;
+      case "pdf":
+        filename = `dados_exportacao_${dateStr}.pdf`;
+        mime = "application/pdf";
+        content = "PDF fictício exportado.\nPara produção, gere arquivos reais via backend.";
+        break;
+      case "txt":
+        filename = `dados_exportacao_${dateStr}.txt`;
+        mime = "text/plain";
+        content = "Exportação TXT simulada.\n";
+        break;
+      default:
+        filename = `exportacao_${dateStr}.dat`;
+        mime = "application/octet-stream";
+        content = "Exportação genérica";
+    }
+
+    // Arquivo em string será convertido para Blob abaixo
+    return { content, filename, mime };
   };
 
   const handleExport = () => {
-    if (selectedFormat && onExport) {
-      onExport(selectedFormat);
-      onClose();
+    if (!selectedFormat) return;
+    const { content, filename, mime } = gerarArquivo(selectedFormat);
+
+    // Criação Blob se for string (caso TXT, CSV, XLS, PDF)
+    let blob: Blob;
+    if (content instanceof Blob) {
+      blob = content;
+    } else {
+      blob = new Blob([content], { type: mime });
     }
+    const url = URL.createObjectURL(blob);
+
+    const a = document.createElement("a");
+    a.href = url;
+    a.download = filename;
+    document.body.appendChild(a);
+    a.click();
+    setTimeout(() => {
+      document.body.removeChild(a);
+      URL.revokeObjectURL(url);
+    }, 150);
+
+    toast({
+      title: "Exportação concluída!",
+      description: `O arquivo ${filename} foi gerado e baixado.`,
+    });
+
+    setSelectedFormat("");
+    if (onExport) onExport(selectedFormat);
+    onClose();
   };
 
   if (!isOpen) return null;
@@ -75,6 +169,7 @@ const ImportExportModal = ({ isOpen, onClose, type, onImport, onExport }: Import
                   accept=".csv,.xls,.xlsx,.zip,.pdf,.txt"
                   onChange={handleFileSelect}
                   className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500"
+                  disabled={processing}
                 />
               </div>
               
@@ -88,10 +183,10 @@ const ImportExportModal = ({ isOpen, onClose, type, onImport, onExport }: Import
               
               <Button 
                 onClick={handleImport} 
-                disabled={!selectedFile}
+                disabled={!selectedFile || processing}
                 className="w-full"
               >
-                Importar Arquivo
+                {processing ? "Importando..." : "Importar Arquivo"}
               </Button>
             </>
           ) : (
@@ -106,6 +201,7 @@ const ImportExportModal = ({ isOpen, onClose, type, onImport, onExport }: Import
                     return (
                       <button
                         key={format.type}
+                        type="button"
                         onClick={() => setSelectedFormat(format.type)}
                         className={`w-full p-3 text-left border rounded-lg hover:bg-gray-50 ${
                           selectedFormat === format.type ? "border-blue-500 bg-blue-50" : "border-gray-300"
@@ -129,7 +225,7 @@ const ImportExportModal = ({ isOpen, onClose, type, onImport, onExport }: Import
                 disabled={!selectedFormat}
                 className="w-full"
               >
-                Exportar como {selectedFormat.toUpperCase()}
+                Exportar como {selectedFormat ? selectedFormat.toUpperCase() : ""}
               </Button>
             </>
           )}

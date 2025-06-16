@@ -3,6 +3,7 @@ import { useState } from "react";
 import { Card, CardContent, CardHeader, CardTitle } from "./ui/card";
 import { Button } from "./ui/button";
 import { X, Database, Clock, Settings } from "lucide-react";
+import { useToast } from "@/hooks/use-toast";
 
 interface BackupModalProps {
   isOpen: boolean;
@@ -22,15 +23,59 @@ const BackupModal = ({ isOpen, onClose, backupConfig, onSave }: BackupModalProps
     compressao: backupConfig?.compressao || true
   });
 
+  const { toast } = useToast();
+  const [isProcessing, setIsProcessing] = useState(false);
+
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
     onSave(formData);
-    alert("Configurações de backup salvas com sucesso!");
+    toast({
+      title: "Configurações Salvas!",
+      description: "Configurações de backup salvas com sucesso.",
+    });
     onClose();
   };
 
+  const handleDownload = (data: string, filename: string) => {
+    const blob = new Blob([data], { type: "application/zip" });
+    const url = URL.createObjectURL(blob);
+
+    const a = document.createElement("a");
+    a.href = url;
+    a.download = filename;
+    document.body.appendChild(a);
+    a.click();
+    setTimeout(() => {
+      document.body.removeChild(a);
+      URL.revokeObjectURL(url);
+    }, 100);
+  };
+
   const handleBackupManual = () => {
-    alert("Backup manual iniciado! Você será notificado quando concluído.");
+    if (isProcessing) return;
+    setIsProcessing(true);
+    toast({
+      title: "Backup manual iniciado",
+      description: "Backup manual está em execução. Você será notificado ao finalizar.",
+    });
+    // Simula processo de backup
+    setTimeout(() => {
+      setIsProcessing(false);
+      toast({
+        title: "Backup concluído",
+        description: "O backup manual foi finalizado com sucesso!",
+      });
+      // Gera um arquivo fictício para download
+      const now = new Date();
+      const dateStr = now
+        .toISOString()
+        .replace(/T/, "_")
+        .replace(/:/g, "-")
+        .split(".")[0];
+      const fileName = `backup_sistema_${dateStr}.zip`;
+      const conteudoSimulado = `Backup gerado em ${now.toLocaleString()}\n\n(simulação de conteúdo do backup)`;
+      handleDownload(conteudoSimulado, fileName);
+    }, 3400);
     console.log("Iniciando backup manual...");
   };
 
@@ -57,8 +102,13 @@ const BackupModal = ({ isOpen, onClose, backupConfig, onSave }: BackupModalProps
                 <p className="font-medium">Backup Manual</p>
                 <p className="text-sm text-gray-600">Executar backup agora</p>
               </div>
-              <Button type="button" onClick={handleBackupManual} size="sm">
-                Executar
+              <Button 
+                type="button" 
+                onClick={handleBackupManual} 
+                size="sm"
+                disabled={isProcessing}
+              >
+                {isProcessing ? "Processando..." : "Executar"}
               </Button>
             </div>
 
@@ -187,3 +237,4 @@ const BackupModal = ({ isOpen, onClose, backupConfig, onSave }: BackupModalProps
 };
 
 export default BackupModal;
+

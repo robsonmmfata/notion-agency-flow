@@ -1,4 +1,3 @@
-
 import { useState } from "react";
 import { Card, CardContent, CardHeader, CardTitle } from "./ui/card";
 import { Button } from "./ui/button";
@@ -31,39 +30,43 @@ const EnvioModal = ({ isOpen, onClose, type, fatura }: EnvioModalProps) => {
     }, 2000);
   };
 
-  const handleSend = () => {
-    if (!selectedMethod || !message.trim()) {
-      alert("Selecione um método de envio e digite uma mensagem");
-      return;
+  const validateSend = () => {
+    if (!selectedMethod) {
+      alert("Selecione um método de envio");
+      return false;
     }
+    if (!message.trim()) {
+      alert("Digite uma mensagem");
+      return false;
+    }
+    if (selectedMethod === "whatsapp" && !whatsappNumber.trim()) {
+      alert("Digite o número do WhatsApp");
+      return false;
+    }
+    if (selectedMethod === "email" && !emailAddress.trim()) {
+      alert("Digite o endereço de email");
+      return false;
+    }
+    return true;
+  };
+
+  const handleSend = () => {
+    if (!validateSend()) return;
 
     if (selectedMethod === "whatsapp") {
-      if (!whatsappNumber.trim()) {
-        alert("Digite o número do WhatsApp");
-        return;
-      }
-      
       // Envio real via WhatsApp
       const whatsappMessage = encodeURIComponent(message);
       const whatsappUrl = `https://wa.me/${whatsappNumber.replace(/\D/g, '')}?text=${whatsappMessage}`;
       window.open(whatsappUrl, '_blank');
-      console.log(`Enviando via WhatsApp para ${whatsappNumber}: ${message}`);
       alert(`Redirecionando para WhatsApp (${whatsappNumber})!`);
     } else {
-      if (!emailAddress.trim()) {
-        alert("Digite o endereço de email");
-        return;
-      }
-      
       // Envio real via Email
       const subject = encodeURIComponent(`Fatura ${fatura?.mesReferencia} - ${fatura?.cliente}`);
       const body = encodeURIComponent(message);
       const mailtoUrl = `mailto:${emailAddress}?subject=${subject}&body=${body}`;
       window.open(mailtoUrl, '_blank');
-      console.log(`Enviando via Email para ${emailAddress}: ${message}`);
       alert(`Abrindo cliente de email para enviar para ${emailAddress}!`);
     }
-    
     setMessage("");
     setSelectedMethod("");
     setWhatsappNumber("");
