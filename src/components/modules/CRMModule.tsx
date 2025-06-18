@@ -5,7 +5,10 @@ import { useState, useEffect } from "react";
 import ClienteModal from "../ClienteModal";
 import EditClienteModal from "../EditClienteModal";
 import ImportExportModal from "../ImportExportModal";
-import pool from "../../integrations/postgres/client";
+import { supabase } from "../../integrations/supabase/client";
+
+
+
 
 const CRMModule = () => {
   const [filterStatus, setFilterStatus] = useState("todos");
@@ -23,26 +26,29 @@ const CRMModule = () => {
   }, []);
 
   const fetchClientes = async () => {
-    try {
-      const res = await pool.query('SELECT * FROM clientes ORDER BY id ASC');
-      setClientes(res.rows);
-    } catch (error) {
+    const { data, error } = await supabase
+      .from("clientes")
+      .select("*")
+      .order("id", { ascending: true });
+    if (error) {
       console.error("Erro ao buscar clientes:", error);
+    } else {
+      setClientes(data || []);
     }
   };
 
   const handleSaveCliente = async (novoCliente: any) => {
-    try {
-      const columns = Object.keys(novoCliente).join(", ");
-      const values = Object.values(novoCliente);
-      const placeholders = values.map((_, i) => `$${i + 1}`).join(", ");
-      const query = `INSERT INTO clientes (${columns}) VALUES (${placeholders}) RETURNING *`;
-      const res = await pool.query(query, values);
-      setClientes((prev) => [...prev, res.rows[0]]);
-      setClienteModal(false);
-    } catch (error) {
+    const { data, error } = await supabase
+      .from("clientes")
+      .insert([novoCliente])
+      .select()
+      .single();
+    if (error) {
       console.error("Erro ao salvar cliente:", error);
       alert("Erro ao salvar cliente");
+    } else if (data) {
+      setClientes((prev) => [...prev, data]);
+      setClienteModal(false);
     }
   };
 
@@ -53,58 +59,35 @@ const CRMModule = () => {
   };
 
   const handleUpdateCliente = async (clienteAtualizado: any) => {
-    try {
-      const id = clienteAtualizado.id;
-      const updates = { ...clienteAtualizado };
-      delete updates.id;
-      const columns = Object.keys(updates);
-      const values = Object.values(updates);
-      const setString = columns.map((col, i) => `${col} = $${i + 1}`).join(", ");
-      const query = `UPDATE clientes SET ${setString} WHERE id = $${columns.length + 1} RETURNING *`;
-      const res = await pool.query(query, [...values, id]);
-      setClientes((prev) =>
-        prev.map((c) => (c.id === res.rows[0].id ? res.rows[0] : c))
-      );
-      setEditClienteModal(false);
-    } catch (error) {
+    const { data, error } = await supabase
+      .from("clientes")
+      .update(clienteAtualizado)
+      .eq("id", clienteAtualizado.id)
+      .select()
+      .single();
+    if (error) {
       console.error("Erro ao atualizar cliente:", error);
       alert("Erro ao atualizar cliente");
+    } else if (data) {
+      setClientes((prev) =>
+        prev.map((c) => (c.id === data.id ? data : c))
+      );
+      setEditClienteModal(false);
     }
   };
 
   const handleDeleteCliente = async (id: number) => {
-    try {
-      await pool.query('DELETE FROM clientes WHERE id = $1', [id]);
-      setClientes((prev) => prev.filter((c) => c.id !== id));
-      setActionMenu(null);
-    } catch (error) {
+    const { error } = await supabase
+      .from("clientes")
+      .delete()
+      .eq("id", id);
+    if (error) {
       console.error("Erro ao deletar cliente:", error);
       alert("Erro ao deletar cliente");
+    } else {
+      setClientes((prev) => prev.filter((c) => c.id !== id));
+      setActionMenu(null);
     }
-  };
-
-  // Função para converter string de pagamento em número percentual
-  const parseProgresso = (pagamentoStr: string): number => {
-    if (!pagamentoStr) return 0;
-    pagamentoStr = pagamentoStr.toLowerCase().trim();
-
-    // Tenta extrair número direto, ex: "pagou 50 %"
-    const numMatch = pagamentoStr.match(/(\d+)(?:\s*%|%|)/);
-    if (numMatch) {
-      return parseInt(numMatch[1], 10);
-    }
-
-    // Tenta extrair fração, ex: "pagou 1/3"
-    const fracMatch = pagamentoStr.match(/(\d+)\/(\d+)/);
-    if (fracMatch) {
-      const numerator = parseInt(fracMatch[1], 10);
-      const denominator = parseInt(fracMatch[2], 10);
-      if (denominator !== 0) {
-        return Math.round((numerator / denominator) * 100);
-      }
-    }
-
-    return 0;
   };
 
   const handleImportContacts = async (file: File, type: string) => {
@@ -117,10 +100,8 @@ const CRMModule = () => {
         const text = e.target?.result as string;
         console.log("Conteúdo do arquivo:", text);
         const lines = text.split("\n");
-        const headers = lines[0].split(",").map(h => h.replace(/"/g, "").trim());
+        const headers = lines[0].split(",");
         console.log("Headers:", headers);
-
-        const pagamentoIndex = headers.findIndex(h => h.toLowerCase() === "pagamento");
 
         const novosClientes = lines
           .slice(1)
@@ -165,12 +146,6 @@ const CRMModule = () => {
               valor = parseValor(values[6]);
             }
 
-            // Extrair progresso da coluna "Pagamento"
-            let progresso = 0;
-            if (pagamentoIndex !== -1) {
-              progresso = parseProgresso(values[pagamentoIndex]);
-            }
-
             // Campos fixos ou padrão
             const tipo_servico = "Gestão de Redes";
             // data_fim: 1 ano após data_inicio, se data_inicio existir
@@ -186,7 +161,6 @@ const CRMModule = () => {
               forma_pagamento,
               status,
               proxima_cobranca,
-              progresso,
             } : null;
           })
           .filter(cliente => cliente !== null);
@@ -206,7 +180,7 @@ const CRMModule = () => {
         } else {
           console.log("Clientes importados com sucesso:", data);
           await fetchClientes();
-          alert(`${(data ?? []).length} clientes importados com sucesso!`);
+          alert(`${data.length} clientes importados com sucesso!`);
           setImportModal(false);
         }
       };
@@ -358,7 +332,6 @@ const CRMModule = () => {
                   <th className="text-left py-3 px-4 font-medium text-gray-500">Período</th>
                   <th className="text-left py-3 px-4 font-medium text-gray-500">Valor/Mês</th>
                   <th className="text-left py-3 px-4 font-medium text-gray-500">Status</th>
-                  <th className="text-left py-3 px-4 font-medium text-gray-500">Progresso</th>
                   <th className="text-left py-3 px-4 font-medium text-gray-500">Próxima Cobrança</th>
                   <th className="text-left py-3 px-4 font-medium text-gray-500">Ações</th>
                 </tr>
@@ -386,9 +359,6 @@ const CRMModule = () => {
                       <span className={`px-2 py-1 rounded-full text-xs font-medium ${getStatusColor(cliente.status)}`}>
                         {cliente.status.charAt(0).toUpperCase() + cliente.status.slice(1)}
                       </span>
-                    </td>
-                    <td className="py-3 px-4 text-gray-600">
-                      {cliente.progresso !== undefined ? `${cliente.progresso}%` : "-"}
                     </td>
                     <td className="py-3 px-4 text-sm text-gray-600">
                       {cliente.proxima_cobranca !== "-" ? 
@@ -457,3 +427,4 @@ const CRMModule = () => {
 };
 
 export default CRMModule;
+

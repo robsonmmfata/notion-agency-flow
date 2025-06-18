@@ -10,7 +10,6 @@ CREATE TABLE IF NOT EXISTS clientes (
   valor NUMERIC(12,2) NOT NULL,
   forma_pagamento VARCHAR(50) NOT NULL,
   status VARCHAR(50) NOT NULL,
-  progresso INTEGER NOT NULL DEFAULT 0,
   proxima_cobranca DATE NOT NULL
 );
 
