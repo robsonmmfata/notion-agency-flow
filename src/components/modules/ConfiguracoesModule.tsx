@@ -1,3 +1,4 @@
+
 import { Card, CardContent, CardHeader, CardTitle } from "../ui/card";
 import { Button } from "../ui/button";
 import { Settings, User, Bell, Shield, Database, Download, Upload, Clock } from "lucide-react";
@@ -5,7 +6,6 @@ import { useState } from "react";
 import ImportExportModal from "../ImportExportModal";
 import NotificacaoModal from "../NotificacaoModal";
 import BackupModal from "../BackupModal";
-import { useToast } from "@/hooks/use-toast";
 
 const ConfiguracoesModule = () => {
   const [importModal, setImportModal] = useState(false);
@@ -77,49 +77,6 @@ const ConfiguracoesModule = () => {
   const handleSaveBackupConfig = (config: any) => {
     setBackupConfig(config);
     console.log("Configurações de backup salvas:", config);
-  };
-
-  const { toast } = useToast();
-  const [isBackupProcessing, setIsBackupProcessing] = useState(false);
-
-  // Função para backup manual (simulação igual ao modal)
-  const handleBackupManual = () => {
-    if (isBackupProcessing) return;
-    setIsBackupProcessing(true);
-    toast({
-      title: "Backup manual iniciado",
-      description: "Backup manual está em execução. Você será notificado ao finalizar.",
-    });
-    // Simula processo de backup
-    setTimeout(() => {
-      setIsBackupProcessing(false);
-      toast({
-        title: "Backup concluído",
-        description: "O backup manual foi finalizado com sucesso!",
-      });
-      // Gera um arquivo fictício para download
-      const now = new Date();
-      const dateStr = now
-        .toISOString()
-        .replace(/T/, "_")
-        .replace(/:/g, "-")
-        .split(".")[0];
-      const fileName = `backup_sistema_${dateStr}.zip`;
-      const conteudoSimulado = `Backup gerado em ${now.toLocaleString()}\n\n(simulação de conteúdo do backup)`;
-      const blob = new Blob([conteudoSimulado], { type: "application/zip" });
-      const url = URL.createObjectURL(blob);
-
-      const a = document.createElement("a");
-      a.href = url;
-      a.download = fileName;
-      document.body.appendChild(a);
-      a.click();
-      setTimeout(() => {
-        document.body.removeChild(a);
-        URL.revokeObjectURL(url);
-      }, 150);
-    }, 3400);
-    console.log("Iniciando backup manual...");
   };
 
   return (
@@ -297,23 +254,24 @@ const ConfiguracoesModule = () => {
             <div>
               <p className="font-medium">Último backup</p>
               <p className="text-sm text-gray-500">
-                {backupConfig.automatico ? `Automático às ${backupConfig.horario}` : "Manual"}
+                {backupConfig.automatico ? `Automático às ${backupConfig.horario}` : 'Manual'}
               </p>
             </div>
             <div className="w-3 h-3 bg-green-500 rounded-full"></div>
           </div>
+          
           <div className="grid grid-cols-2 gap-4">
-            <Button
-              variant="outline"
+            <Button 
+              variant="outline" 
               className="flex items-center justify-center space-x-2"
-              onClick={handleBackupManual}
-              disabled={isBackupProcessing}
+              onClick={() => alert("Backup manual iniciado!")}
             >
               <Database className="w-4 h-4" />
-              <span>{isBackupProcessing ? "Processando..." : "Backup Manual"}</span>
+              <span>Backup Manual</span>
             </Button>
-            <Button
-              variant="outline"
+            
+            <Button 
+              variant="outline" 
               className="flex items-center justify-center space-x-2"
               onClick={() => setBackupModal(true)}
             >
