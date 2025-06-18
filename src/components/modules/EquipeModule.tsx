@@ -223,6 +223,17 @@ const EquipeModule = () => {
           </CardContent>
         </Card>
         
+        <Card>
+          <CardContent className="p-6">
+            <div className="flex items-center justify-between">
+              <div>
+                <p className="text-sm font-medium text-gray-500">Vagas Abertas</p>
+                <p className="text-2xl font-bold text-gray-900">{vagasAbertas.length}</p>
+              </div>
+              <Briefcase className="w-8 h-8 text-purple-600" />
+            </div>
+          </CardContent>
+        </Card>
       </div>
 
       {/* Tabs */}
@@ -248,6 +259,16 @@ const EquipeModule = () => {
               }`}
             >
               Tarefas
+            </button>
+            <button
+              onClick={() => setActiveTab("vagas")}
+              className={`px-4 py-2 rounded-lg font-medium ${
+                activeTab === "vagas"
+                  ? "bg-blue-100 text-blue-700"
+                  : "text-gray-500 hover:text-gray-700"
+              }`}
+            >
+              Vagas Abertas
             </button>
           </div>
         </CardHeader>
@@ -354,6 +375,43 @@ const EquipeModule = () => {
             </div>
           )}
 
+          {activeTab === "vagas" && (
+            <div className="space-y-4">
+              {vagasAbertas.map((vaga) => (
+                <Card key={vaga.id} className="hover:shadow-lg transition-shadow">
+                  <CardContent className="p-6">
+                    <div className="flex items-center justify-between">
+                      <div className="flex-1">
+                        <h3 className="font-medium text-gray-900 text-lg">{vaga.titulo}</h3>
+                        <p className="text-gray-500">{vaga.departamento} • {vaga.tipo}</p>
+                        <p className="text-green-600 font-medium">{vaga.salario}</p>
+                      </div>
+                      <div className="text-right">
+                        <span className="px-3 py-1 bg-blue-100 text-blue-800 rounded-full text-sm font-medium">
+                          {vaga.status}
+                        </span>
+                        <div className="mt-2 space-x-2">
+                          <Button 
+                            size="sm" 
+                            variant="outline"
+                            onClick={() => alert("Modal de edição de vaga seria aberto")}
+                          >
+                            Editar
+                          </Button>
+                          <Button 
+                            size="sm"
+                            onClick={() => alert("Lista de candidatos seria exibida")}
+                          >
+                            Ver Candidatos
+                          </Button>
+                        </div>
+                      </div>
+                    </div>
+                  </CardContent>
+                </Card>
+              ))}
+            </div>
+          )}
         </CardContent>
       </Card>
 
