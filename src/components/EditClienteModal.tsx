@@ -138,10 +138,12 @@ const EditClienteModal = ({ isOpen, onClose, onSave, onDelete, cliente }: EditCl
                 onChange={(e) => setFormData({...formData, status: e.target.value})}
                 className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500"
               >
-                <option value="ativo">Ativo</option>
-                <option value="expirando">Expirando</option>
-                <option value="cancelado">Cancelado</option>
-                <option value="pendente">Pendente</option>
+                <option value="executando">Executando</option>
+                <option value="lead">Lead</option>
+                <option value="qualificado">Qualificado</option>
+                <option value="contrato enviada">Contrato Enviada</option>
+                <option value="negociacao">Negociação</option>
+                <option value="aguardando pagamento">Aguardando Pagamento</option>
               </select>
             </div>
             

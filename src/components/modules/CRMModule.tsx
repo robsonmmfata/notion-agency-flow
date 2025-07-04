@@ -7,87 +7,139 @@ import EditClienteModal from "../EditClienteModal";
 import ImportExportModal from "../ImportExportModal";
 import { supabase } from "../../integrations/supabase/client";
 
-
-
+interface Cliente {
+  id?: number;
+  nome: string;
+  tipo_servico: string;
+  data_inicio: string;
+  data_fim: string | null;
+  valor: number;
+  forma_pagamento: string;
+  status: string;
+  proxima_cobranca: string | null;
+  progresso?: number;
+}
 
 const CRMModule = () => {
-  const [filterStatus, setFilterStatus] = useState("todos");
-  const [filterService, setFilterService] = useState("todos");
-  const [clienteModal, setClienteModal] = useState(false);
-  const [editClienteModal, setEditClienteModal] = useState(false);
-  const [selectedCliente, setSelectedCliente] = useState<any | null>(null);
-  const [importModal, setImportModal] = useState(false);
+  const [filterStatus, setFilterStatus] = useState<string>("todos");
+  const [filterService, setFilterService] = useState<string>("todos");
+  const [searchQuery, setSearchQuery] = useState<string>("");
+  const [clienteModal, setClienteModal] = useState<boolean>(false);
+  const [editClienteModal, setEditClienteModal] = useState<boolean>(false);
+  const [selectedCliente, setSelectedCliente] = useState<Cliente | null>(null);
+  const [importModal, setImportModal] = useState<boolean>(false);
   const [actionMenu, setActionMenu] = useState<number | null>(null);
 
-  const [clientes, setClientes] = useState([]);
+  const [clientes, setClientes] = useState<Cliente[]>([]);
 
   useEffect(() => {
     fetchClientes();
   }, []);
 
   const fetchClientes = async () => {
-    const { data, error } = await supabase
-      .from("clientes")
-      .select("*")
-      .order("id", { ascending: true });
-    if (error) {
-      console.error("Erro ao buscar clientes:", error);
-    } else {
+    try {
+      const { data, error } = await supabase
+        .from("clientes")
+        .select("*")
+        .order("id", { ascending: true });
+      if (error) {
+        throw error;
+      }
       setClientes(data || []);
+    } catch (error) {
+      console.error("Erro ao buscar clientes:", error);
     }
   };
 
-  const handleSaveCliente = async (novoCliente: any) => {
-    const { data, error } = await supabase
-      .from("clientes")
-      .insert([novoCliente])
-      .select()
-      .single();
-    if (error) {
+  const handleSaveCliente = async (novoCliente: Cliente) => {
+    try {
+      const { data, error } = await supabase
+        .from("clientes")
+        .insert([novoCliente])
+        .select()
+        .single();
+      if (error) {
+        throw error;
+      }
+      if (data !== null && data !== undefined) {
+        setClientes((prev) => [...prev, data]);
+      }
+      setClienteModal(false);
+    } catch (error) {
       console.error("Erro ao salvar cliente:", error);
       alert("Erro ao salvar cliente");
-    } else if (data) {
-      setClientes((prev) => [...prev, data]);
-      setClienteModal(false);
     }
   };
 
-  const handleEditCliente = (cliente: any) => {
+  const handleEditCliente = (cliente: Cliente) => {
     setSelectedCliente(cliente);
     setEditClienteModal(true);
     setActionMenu(null);
   };
 
-  const handleUpdateCliente = async (clienteAtualizado: any) => {
-    const { data, error } = await supabase
-      .from("clientes")
-      .update(clienteAtualizado)
-      .eq("id", clienteAtualizado.id)
-      .select()
-      .single();
-    if (error) {
+  const handleUpdateCliente = async (clienteAtualizado: Cliente) => {
+    try {
+      const { id, ...updates } = clienteAtualizado;
+      const { data, error } = await supabase
+        .from("clientes")
+        .update(updates)
+        .eq("id", id)
+        .select()
+        .single();
+      if (error) {
+        throw error;
+      }
+      if (data !== null && data !== undefined) {
+        setClientes((prev) =>
+          prev.map((c) => (c.id === data.id ? data : c))
+        );
+      }
+      setEditClienteModal(false);
+    } catch (error) {
       console.error("Erro ao atualizar cliente:", error);
       alert("Erro ao atualizar cliente");
-    } else if (data) {
-      setClientes((prev) =>
-        prev.map((c) => (c.id === data.id ? data : c))
-      );
-      setEditClienteModal(false);
     }
   };
 
   const handleDeleteCliente = async (id: number) => {
-    const { error } = await supabase
-      .from("clientes")
-      .delete()
-      .eq("id", id);
-    if (error) {
-      console.error("Erro ao deletar cliente:", error);
-      alert("Erro ao deletar cliente");
-    } else {
+    try {
+      const { error } = await supabase
+        .from("clientes")
+        .delete()
+        .eq("id", id);
+      if (error) {
+        throw error;
+      }
       setClientes((prev) => prev.filter((c) => c.id !== id));
       setActionMenu(null);
+    } catch (error) {
+      console.error("Erro ao deletar cliente:", error);
+      alert("Erro ao deletar cliente");
     }
+  };
+
+  // Função para converter string de pagamento em número percentual
+  const parseProgresso = (pagamentoStr: string): number => {
+    if (!pagamentoStr) return 0;
+    pagamentoStr = pagamentoStr.toLowerCase().trim();
+
+    // Tenta extrair número direto, ex: "pagou 50 %"
+    const numMatch = pagamentoStr.match(/(\d+)(?:\s*%|%|)/);
+    if (numMatch) {
+      return parseInt(numMatch[1], 10);
+    }
+
+    // Tenta extrair fração, ex: "pagou 1/3"
+    const fracMatch = pagamentoStr.match(/(\d+)\/(\d+)/);
+    if (fracMatch) {
+      const numerator = parseInt(fracMatch[1], 10);
+      const denominator = parseInt(fracMatch[2], 10);
+      if (denominator !== 0) {
+        return Math.round((numerator / denominator) * 100);
+      }
+    }
+
+    return 0;
   };
 
   const handleImportContacts = async (file: File, type: string) => {
@@ -100,8 +152,10 @@ const CRMModule = () => {
         const text = e.target?.result as string;
         console.log("Conteúdo do arquivo:", text);
         const lines = text.split("\n");
-        const headers = lines[0].split(",");
+        const headers = lines[0].split(",").map(h => h.replace(/"/g, "").trim());
         console.log("Headers:", headers);
+
+        const pagamentoIndex = headers.findIndex(h => h.toLowerCase() === "pagamento");
 
         const novosClientes = lines
           .slice(1)
@@ -115,7 +169,7 @@ const CRMModule = () => {
             const rawNome = values[0]?.replace(/"/g, "") || `Cliente ${index + 1}`;
             // Remover emojis e URLs entre parênteses
             const nomeSemEmoji = rawNome.replace(/^[^\w\s]+/, '').replace(/\([^)]*\)/g, '').trim();
-            let nome = nomeSemEmoji.length > 50 ? nomeSemEmoji.substring(0, 50) : nomeSemEmoji;
+            const nome = nomeSemEmoji.length > 50 ? nomeSemEmoji.substring(0, 50) : nomeSemEmoji;
 
             // Mapear status do CSV para status esperado no CRM
             // Exemplo: "Executando" -> "ativo", "Lead" -> "lead", outros -> "ativo" por padrão
@@ -146,6 +200,12 @@ const CRMModule = () => {
               valor = parseValor(values[6]);
             }
 
+            // Extrair progresso da coluna "Pagamento"
+            let progresso = 0;
+            if (pagamentoIndex !== -1) {
+              progresso = parseProgresso(values[pagamentoIndex]);
+            }
+
             // Campos fixos ou padrão
             const tipo_servico = "Gestão de Redes";
             // data_fim: 1 ano após data_inicio, se data_inicio existir
@@ -161,6 +221,7 @@ const CRMModule = () => {
               forma_pagamento,
               status,
               proxima_cobranca,
+              progresso,
             } : null;
           })
           .filter(cliente => cliente !== null);
@@ -208,7 +269,8 @@ const CRMModule = () => {
   const clientesFiltrados = clientes.filter((cliente) => {
     const statusMatch = filterStatus === "todos" || cliente.status === filterStatus;
     const serviceMatch = filterService === "todos" || cliente.tipo_servico === filterService;
-    return statusMatch && serviceMatch;
+    const searchMatch = cliente.nome.toLowerCase().includes(searchQuery.toLowerCase());
+    return statusMatch && serviceMatch && searchMatch;
   });
 
   const totalContratos = clientesFiltrados.filter((c) => c.status === "ativo").length;
@@ -283,11 +345,13 @@ const CRMModule = () => {
           <div className="flex flex-col md:flex-row gap-4">
             <div className="flex-1 relative">
               <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 w-4 h-4 text-gray-400" />
-              <input
-                type="text"
-                placeholder="Buscar cliente..."
-                className="w-full pl-10 pr-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
-              />
+          <input
+            type="text"
+            placeholder="Buscar cliente..."
+            value={searchQuery}
+            onChange={(e) => setSearchQuery(e.target.value)}
+            className="w-full pl-10 pr-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+          />
             </div>
 
             <select
@@ -296,10 +360,12 @@ const CRMModule = () => {
               className="px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500"
             >
               <option value="todos">Todos os Status</option>
-              <option value="ativo">Ativo</option>
-              <option value="expirando">Expirando</option>
-              <option value="cancelado">Cancelado</option>
-              <option value="pendente">Pendente</option>
+              <option value="executando">Executando</option>
+              <option value="lead">Lead</option>
+              <option value="qualificado">Qualificado</option>
+              <option value="contrato enviada">Contrato Enviada</option>
+              <option value="negociacao">Negociação</option>
+              <option value="aguardando pagamento">Aguardando Pagamento</option>
             </select>
 
             <select
@@ -332,6 +398,7 @@ const CRMModule = () => {
                   <th className="text-left py-3 px-4 font-medium text-gray-500">Período</th>
                   <th className="text-left py-3 px-4 font-medium text-gray-500">Valor/Mês</th>
                   <th className="text-left py-3 px-4 font-medium text-gray-500">Status</th>
+                  <th className="text-left py-3 px-4 font-medium text-gray-500">Progresso</th>
                   <th className="text-left py-3 px-4 font-medium text-gray-500">Próxima Cobrança</th>
                   <th className="text-left py-3 px-4 font-medium text-gray-500">Ações</th>
                 </tr>
@@ -359,6 +426,9 @@ const CRMModule = () => {
                       <span className={`px-2 py-1 rounded-full text-xs font-medium ${getStatusColor(cliente.status)}`}>
                         {cliente.status.charAt(0).toUpperCase() + cliente.status.slice(1)}
                       </span>
+                    </td>
+                    <td className="py-3 px-4 text-gray-600">
+                      {cliente.progresso !== undefined ? `${cliente.progresso}%` : "-"}
                     </td>
                     <td className="py-3 px-4 text-sm text-gray-600">
                       {cliente.proxima_cobranca !== "-" ? 
@@ -427,4 +497,3 @@ const CRMModule = () => {
 };
 
 export default CRMModule;
-

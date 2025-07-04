@@ -17,16 +17,21 @@ const ClienteModal = ({ isOpen, onClose, onSave }: ClienteModalProps) => {
     dataInicio: "",
     dataFim: "",
     valor: "",
-    formaPagamento: "Mensal",
+    formaPagamento: "Diario",
     status: "ativo"
   });
 
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
     onSave({
-      ...formData,
+      nome: formData.nome,
+      tipo_servico: formData.tipoServico,
+      data_inicio: formData.dataInicio,
+      data_fim: formData.dataFim,
       valor: parseFloat(formData.valor),
-      proximaCobranca: formData.dataInicio
+      forma_pagamento: formData.formaPagamento,
+      status: formData.status,
+      proxima_cobranca: formData.dataInicio
     });
     setFormData({
       nome: "",
@@ -124,10 +129,9 @@ const ClienteModal = ({ isOpen, onClose, onSave }: ClienteModalProps) => {
                 onChange={(e) => setFormData({...formData, formaPagamento: e.target.value})}
                 className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500"
               >
+                <option value="Diario">Diario</option>
                 <option value="Mensal">Mensal</option>
-                <option value="Trimestral">Trimestral</option>
-                <option value="Semestral">Semestral</option>
-                <option value="Anual">Anual</option>
+                <option value="Quinzenal">Quinzenal</option>
               </select>
             </div>
             

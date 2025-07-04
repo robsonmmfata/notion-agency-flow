@@ -1,4 +1,3 @@
-
 import { Card, CardContent, CardHeader, CardTitle } from "../ui/card";
 import { Button } from "../ui/button";
 import { Settings, User, Bell, Shield, Database, Download, Upload, Clock } from "lucide-react";
@@ -6,6 +5,9 @@ import { useState } from "react";
 import ImportExportModal from "../ImportExportModal";
 import NotificacaoModal from "../NotificacaoModal";
 import BackupModal from "../BackupModal";
+import { supabase } from "../../integrations/supabase/client";
+
+
 
 const ConfiguracoesModule = () => {
   const [importModal, setImportModal] = useState(false);
@@ -48,10 +50,90 @@ const ConfiguracoesModule = () => {
     alert(`Arquivo ${file.name} importado com sucesso!`);
   };
 
-  const handleExport = (format: string) => {
+  const handleExport = async (format: string) => {
     console.log(`Exportando dados em formato: ${format}`);
-    // Aqui você implementaria a lógica de exportação
-    alert(`Dados exportados em formato ${format.toUpperCase()}!`);
+
+    try {
+      // Exemplo: exportar dados da tabela clientes
+      const { data, error } = await supabase
+        .from("clientes")
+        .select("*");
+
+      if (error) {
+        throw error;
+      }
+
+      if (!data || data.length === 0) {
+        alert("Nenhum dado disponível para exportação.");
+        return;
+      }
+
+      if (format === "csv") {
+        // Converter dados para CSV
+        const csvRows = [];
+        const headers = Object.keys(data[0]);
+        csvRows.push(headers.join(","));
+
+        for (const row of data) {
+          const values = headers.map(header => {
+            const val = row[header];
+            if (val === null || val === undefined) return "";
+            return `"${String(val).replace(/"/g, '""')}"`;
+          });
+          csvRows.push(values.join(","));
+        }
+
+        const csvString = csvRows.join("\n");
+        const blob = new Blob([csvString], { type: "text/csv;charset=utf-8;" });
+        const url = URL.createObjectURL(blob);
+
+        const link = document.createElement("a");
+        link.href = url;
+        link.setAttribute("download", `export_${Date.now()}.csv`);
+        document.body.appendChild(link);
+        link.click();
+        document.body.removeChild(link);
+
+        alert(`Dados exportados em formato CSV!`);
+      } else if (format === "pdf") {
+        // Exportar dados para PDF
+        import("jspdf").then(({ jsPDF }) => {
+          const doc = new jsPDF();
+          const pageWidth = doc.internal.pageSize.getWidth();
+          const margin = 10;
+          let y = margin;
+
+          doc.setFontSize(18);
+          doc.text("Exportação de Dados - Clientes", pageWidth / 2, y, { align: "center" });
+          y += 10;
+
+          doc.setFontSize(12);
+
+          data.forEach((row, index) => {
+            const rowText = Object.entries(row)
+              .map(([key, value]) => `${key}: ${value}`)
+              .join(" | ");
+            doc.text(rowText, margin, y);
+            y += 7;
+            if (y > doc.internal.pageSize.getHeight() - margin) {
+              doc.addPage();
+              y = margin;
+            }
+          });
+
+          doc.save(`export_${Date.now()}.pdf`);
+          alert("Dados exportados em formato PDF!");
+        }).catch((error) => {
+          console.error("Erro ao gerar PDF:", error);
+          alert("Erro ao exportar dados em PDF.");
+        });
+      } else {
+        alert(`Formato ${format.toUpperCase()} não suportado.`);
+      }
+    } catch (error) {
+      console.error("Erro ao exportar dados:", error);
+      alert("Erro ao exportar dados.");
+    }
   };
 
   const handleSaveNotificacao = (novaNotificacao: any) => {

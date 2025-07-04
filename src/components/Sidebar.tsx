@@ -1,5 +1,5 @@
 
-import { Building2, DollarSign, FileText, Users, BarChart3, Settings } from "lucide-react";
+import { Building2, DollarSign, FileText, Users, BarChart3, Settings, UserPlus } from "lucide-react";
 import { cn } from "../lib/utils";
 
 interface SidebarProps {
@@ -14,6 +14,7 @@ const Sidebar = ({ activeModule, setActiveModule }: SidebarProps) => {
     { id: "financeiro", label: "Financeiro", icon: DollarSign },
     { id: "faturas", label: "Faturas & Cobranças", icon: FileText },
     { id: "equipe", label: "Equipe & Tarefas", icon: Users },
+    { id: "leads", label: "Leads", icon: UserPlus },
     { id: "configuracoes", label: "Configurações", icon: Settings },
   ];
 

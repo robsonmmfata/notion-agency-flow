@@ -116,40 +116,23 @@ const EquipeModule = () => {
     setTarefas([...tarefas, { ...novaTarefa, id }]);
   };
 
-  const vagasAbertas = [
-    {
-      id: 1,
-      titulo: "Especialista em Tráfego Pago",
-      departamento: "Marketing Digital",
-      tipo: "Tempo Integral",
-      salario: "R$ 4.500 - R$ 6.000",
-      status: "Recrutando"
-    },
-    {
-      id: 2,
-      titulo: "Editor de Vídeo",
-      departamento: "Criação",
-      tipo: "Freelancer",
-      salario: "R$ 80/hora",
-      status: "Aguardando aprovação"
-    }
-  ];
+  // Removendo vagas abertas conforme solicitado
 
-  const getStatusColor = (status: string) => {
-    switch (status) {
-      case "concluida": return "bg-green-100 text-green-800";
-      case "em_andamento": return "bg-blue-100 text-blue-800";
-      case "pendente": return "bg-yellow-100 text-yellow-800";
-      case "atrasada": return "bg-red-100 text-red-800";
-      default: return "bg-gray-100 text-gray-800";
-    }
-  };
 
   const getPrioridadeColor = (prioridade: string) => {
     switch (prioridade) {
       case "alta": return "bg-red-100 text-red-800";
       case "media": return "bg-yellow-100 text-yellow-800";
       case "baixa": return "bg-green-100 text-green-800";
+      default: return "bg-gray-100 text-gray-800";
+    }
+  };
+
+  const getStatusColor = (status: string) => {
+    switch (status) {
+      case "concluida": return "bg-green-100 text-green-800";
+      case "em_andamento": return "bg-yellow-100 text-yellow-800";
+      case "pendente": return "bg-red-100 text-red-800";
       default: return "bg-gray-100 text-gray-800";
     }
   };
@@ -186,7 +169,7 @@ const EquipeModule = () => {
       </div>
 
       {/* Cards de Resumo */}
-      <div className="grid grid-cols-1 md:grid-cols-4 gap-6">
+      <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
         <Card>
           <CardContent className="p-6">
             <div className="flex items-center justify-between">
@@ -222,55 +205,33 @@ const EquipeModule = () => {
             </div>
           </CardContent>
         </Card>
-        
-        <Card>
-          <CardContent className="p-6">
-            <div className="flex items-center justify-between">
-              <div>
-                <p className="text-sm font-medium text-gray-500">Vagas Abertas</p>
-                <p className="text-2xl font-bold text-gray-900">{vagasAbertas.length}</p>
-              </div>
-              <Briefcase className="w-8 h-8 text-purple-600" />
-            </div>
-          </CardContent>
-        </Card>
       </div>
 
       {/* Tabs */}
       <Card>
         <CardHeader>
-          <div className="flex space-x-4">
-            <button
-              onClick={() => setActiveTab("membros")}
-              className={`px-4 py-2 rounded-lg font-medium ${
-                activeTab === "membros"
-                  ? "bg-blue-100 text-blue-700"
-                  : "text-gray-500 hover:text-gray-700"
-              }`}
-            >
-              Membros da Equipe
-            </button>
-            <button
-              onClick={() => setActiveTab("tarefas")}
-              className={`px-4 py-2 rounded-lg font-medium ${
-                activeTab === "tarefas"
-                  ? "bg-blue-100 text-blue-700"
-                  : "text-gray-500 hover:text-gray-700"
-              }`}
-            >
-              Tarefas
-            </button>
-            <button
-              onClick={() => setActiveTab("vagas")}
-              className={`px-4 py-2 rounded-lg font-medium ${
-                activeTab === "vagas"
-                  ? "bg-blue-100 text-blue-700"
-                  : "text-gray-500 hover:text-gray-700"
-              }`}
-            >
-              Vagas Abertas
-            </button>
-          </div>
+            <div className="flex space-x-4">
+              <button
+                onClick={() => setActiveTab("membros")}
+                className={`px-4 py-2 rounded-lg font-medium ${
+                  activeTab === "membros"
+                    ? "bg-blue-100 text-blue-700"
+                    : "text-gray-500 hover:text-gray-700"
+                }`}
+              >
+                Membros da Equipe
+              </button>
+              <button
+                onClick={() => setActiveTab("tarefas")}
+                className={`px-4 py-2 rounded-lg font-medium ${
+                  activeTab === "tarefas"
+                    ? "bg-blue-100 text-blue-700"
+                    : "text-gray-500 hover:text-gray-700"
+                }`}
+              >
+                Tarefas
+              </button>
+            </div>
         </CardHeader>
         <CardContent>
           {activeTab === "membros" && (
@@ -377,39 +338,6 @@ const EquipeModule = () => {
 
           {activeTab === "vagas" && (
             <div className="space-y-4">
-              {vagasAbertas.map((vaga) => (
-                <Card key={vaga.id} className="hover:shadow-lg transition-shadow">
-                  <CardContent className="p-6">
-                    <div className="flex items-center justify-between">
-                      <div className="flex-1">
-                        <h3 className="font-medium text-gray-900 text-lg">{vaga.titulo}</h3>
-                        <p className="text-gray-500">{vaga.departamento} • {vaga.tipo}</p>
-                        <p className="text-green-600 font-medium">{vaga.salario}</p>
-                      </div>
-                      <div className="text-right">
-                        <span className="px-3 py-1 bg-blue-100 text-blue-800 rounded-full text-sm font-medium">
-                          {vaga.status}
-                        </span>
-                        <div className="mt-2 space-x-2">
-                          <Button 
-                            size="sm" 
-                            variant="outline"
-                            onClick={() => alert("Modal de edição de vaga seria aberto")}
-                          >
-                            Editar
-                          </Button>
-                          <Button 
-                            size="sm"
-                            onClick={() => alert("Lista de candidatos seria exibida")}
-                          >
-                            Ver Candidatos
-                          </Button>
-                        </div>
-                      </div>
-                    </div>
-                  </CardContent>
-                </Card>
-              ))}
             </div>
           )}
         </CardContent>
